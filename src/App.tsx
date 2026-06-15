@@ -8,6 +8,8 @@ import Onboarding from './routes/Onboarding'
 import Today from './routes/Today'
 import Plan from './routes/Plan'
 import Recipes from './routes/Recipes'
+import RecipeForm from './routes/RecipeForm'
+import RecipeDetail from './routes/RecipeDetail'
 import Shop from './routes/Shop'
 import Pantry from './routes/Pantry'
 
@@ -25,6 +27,9 @@ export default function App() {
                   <Route index element={<Today />} />
                   <Route path="plan" element={<Plan />} />
                   <Route path="recipes" element={<Recipes />} />
+                  <Route path="recipes/new" element={<RecipeForm />} />
+                  <Route path="recipes/:id" element={<RecipeDetail />} />
+                  <Route path="recipes/:id/edit" element={<RecipeForm />} />
                   <Route path="shop" element={<Shop />} />
                   <Route path="pantry" element={<Pantry />} />
                 </Route>
