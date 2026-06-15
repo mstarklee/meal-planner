@@ -35,4 +35,14 @@ describe('Onboarding dynamic kids', () => {
     await userEvent.click(screen.getByLabelText('Remove kid 1'))
     expect(screen.queryByLabelText('Kid 1 name')).not.toBeInTheDocument()
   })
+
+  it('preserves the other kid value when removing from the middle', async () => {
+    renderPage()
+    await userEvent.click(screen.getByText('+ Add a kid'))
+    await userEvent.click(screen.getByText('+ Add a kid'))
+    await userEvent.type(screen.getByLabelText('Kid 1 name'), 'Aanya')
+    await userEvent.type(screen.getByLabelText('Kid 2 name'), 'Vihaan')
+    await userEvent.click(screen.getByLabelText('Remove kid 1'))
+    expect(screen.getByLabelText('Kid 1 name')).toHaveValue('Vihaan')
+  })
 })

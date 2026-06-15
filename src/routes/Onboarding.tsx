@@ -10,47 +10,40 @@ export default function Onboarding() {
   const nav = useNavigate()
   const { session } = useAuth()
   const { refresh } = useHousehold()
-  const t = defaultTargets()
   const [householdName, setHouseholdName] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [kids, setKids] = useState<{ name: string }[]>([])
-  const [targets, setTargets] = useState(t)
+  const [kids, setKids] = useState<{ id: string; name: string }[]>([])
+  const [targets, setTargets] = useState(() => defaultTargets())
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  function addKid() { setKids([...kids, { name: '' }]) }
+  function addKid() { setKids([...kids, { id: crypto.randomUUID(), name: '' }]) }
   function setKid(i: number, name: string) {
-    setKids(kids.map((k, idx) => (idx === i ? { name } : k)))
+    setKids(kids.map((k, idx) => (idx === i ? { ...k, name } : k)))
   }
   function removeKid(i: number) { setKids(kids.filter((_, idx) => idx !== i)) }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    const parsed = onboardingSchema.safeParse({ householdName, displayName, kids, ...targets })
+    const parsed = onboardingSchema.safeParse({
+      householdName, displayName, kids: kids.map((k) => ({ name: k.name })), ...targets,
+    })
     if (!parsed.success) { setError(parsed.error.issues[0].message); return }
     if (!session) { setError('Not signed in'); return }
     setBusy(true)
 
-    const { data: hh, error: e1 } = await supabase
-      .from('households').insert({ name: householdName }).select('id').single()
-    if (e1 || !hh) { setBusy(false); setError(e1?.message ?? 'Failed to create household'); return }
-    const householdId = (hh as { id: string }).id
-
-    const { error: e2 } = await supabase
-      .from('profiles').update({ household_id: householdId, display_name: displayName }).eq('id', session.user.id)
-    if (e2) { setBusy(false); setError(e2.message); return }
-
-    const { error: e3 } = await supabase
-      .from('household_settings').insert({ household_id: householdId, ...targets })
-    if (e3) { setBusy(false); setError(e3.message); return }
-
-    if (kids.length) {
-      const { error: e4 } = await supabase
-        .from('kids').insert(kids.map((k) => ({ household_id: householdId, name: k.name })))
-      if (e4) { setBusy(false); setError(e4.message); return }
-    }
-
+    const { data: newId, error } = await supabase.rpc('create_household_with_setup', {
+      p_name: householdName,
+      p_display_name: displayName,
+      p_kids: kids.map((k) => k.name),
+      p_calories: targets.target_calories,
+      p_protein: targets.target_protein,
+      p_fiber: targets.target_fiber,
+      p_evening: targets.evening_reminder_time,
+      p_morning: targets.morning_reminder_time,
+    })
+    if (error || !newId) { setBusy(false); setError(error?.message ?? 'Failed to set up household'); return }
     await refresh()
     setBusy(false)
     nav('/')
@@ -76,7 +69,7 @@ export default function Onboarding() {
           <label className="text-xs font-bold text-gray-500 uppercase">Kids</label>
           <div className="space-y-2 mt-1">
             {kids.map((k, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={k.id} className="flex gap-2">
                 <input className="flex-1 border rounded-xl p-3" aria-label={`Kid ${i + 1} name`}
                   value={k.name} onChange={(e) => setKid(i, e.target.value)} placeholder="Kid's name" />
                 <button type="button" aria-label={`Remove kid ${i + 1}`}
@@ -100,6 +93,19 @@ export default function Onboarding() {
           <label className="text-xs text-gray-500">Fiber g
             <input type="number" className="w-full border rounded-xl p-2 mt-1" value={targets.target_fiber}
               onChange={(e) => setTargets({ ...targets, target_fiber: Number(e.target.value) })} />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-xs text-gray-500">Evening reminder
+            <input type="time" aria-label="Evening reminder time"
+              className="w-full border rounded-xl p-2 mt-1" value={targets.evening_reminder_time}
+              onChange={(e) => setTargets({ ...targets, evening_reminder_time: e.target.value })} />
+          </label>
+          <label className="text-xs text-gray-500">Morning reminder
+            <input type="time" aria-label="Morning reminder time"
+              className="w-full border rounded-xl p-2 mt-1" value={targets.morning_reminder_time}
+              onChange={(e) => setTargets({ ...targets, morning_reminder_time: e.target.value })} />
           </label>
         </div>
 
