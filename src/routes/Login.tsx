@@ -13,13 +13,18 @@ export default function Login() {
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true); setError(null)
-    const fn = mode === 'signup'
-      ? supabase.auth.signUp({ email, password })
-      : supabase.auth.signInWithPassword({ email, password })
-    const { error } = await fn
-    setBusy(false)
-    if (error) { setError(error.message); return }
-    nav('/')
+    if (mode === 'signup') {
+      const { data, error } = await supabase.auth.signUp({ email, password })
+      setBusy(false)
+      if (error) { setError(error.message); return }
+      if (!data.session) { setError('Account created — check your email to confirm, then sign in.'); setMode('signin'); return }
+      nav('/')
+    } else {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      setBusy(false)
+      if (error) { setError(error.message); return }
+      nav('/')
+    }
   }
 
   return (
