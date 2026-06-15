@@ -15,12 +15,13 @@ const HouseholdContext = createContext<HouseholdState>({
 })
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
-  const { session } = useAuth()
+  const { session, loading: authLoading } = useAuth()
   const [householdId, setHouseholdId] = useState<string | null>(null)
   const [kids, setKids] = useState<Kid[]>([])
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
+    if (authLoading) { return }
     if (!session) { setHouseholdId(null); setKids([]); setLoading(false); return }
     setLoading(true)
     const { data: profile } = await supabase
@@ -34,7 +35,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       setKids([])
     }
     setLoading(false)
-  }, [session])
+  }, [session, authLoading])
 
   useEffect(() => { void refresh() }, [refresh])
 
