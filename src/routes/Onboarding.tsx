@@ -35,14 +35,20 @@ export default function Onboarding() {
     const { data: hh, error: e1 } = await supabase
       .from('households').insert({ name: householdName }).select('id').single()
     if (e1 || !hh) { setBusy(false); setError(e1?.message ?? 'Failed to create household'); return }
+    const householdId = (hh as { id: string }).id
 
     const { error: e2 } = await supabase
-      .from('profiles').update({ household_id: (hh as { id: string }).id, display_name: displayName }).eq('id', session.user.id)
+      .from('profiles').update({ household_id: householdId, display_name: displayName }).eq('id', session.user.id)
     if (e2) { setBusy(false); setError(e2.message); return }
 
-    await supabase.from('household_settings').insert({ household_id: (hh as { id: string }).id, ...targets })
+    const { error: e3 } = await supabase
+      .from('household_settings').insert({ household_id: householdId, ...targets })
+    if (e3) { setBusy(false); setError(e3.message); return }
+
     if (kids.length) {
-      await supabase.from('kids').insert(kids.map((k) => ({ household_id: (hh as { id: string }).id, name: k.name })))
+      const { error: e4 } = await supabase
+        .from('kids').insert(kids.map((k) => ({ household_id: householdId, name: k.name })))
+      if (e4) { setBusy(false); setError(e4.message); return }
     }
 
     await refresh()
