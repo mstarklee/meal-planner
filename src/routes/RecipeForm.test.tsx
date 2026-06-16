@@ -16,7 +16,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 })
 
 import RecipeForm from './RecipeForm'
-import { createRecipe, getRecipe } from '../lib/recipes'
+import { createRecipe, getRecipe, updateRecipe } from '../lib/recipes'
 import type { Recipe } from '../lib/recipe'
 
 function renderForm() {
@@ -88,5 +88,23 @@ describe('RecipeForm', () => {
     renderForm()
     expect(await screen.findByText('network down')).toBeInTheDocument()
     expect(screen.queryByText('Loading…')).not.toBeInTheDocument()
+  })
+
+  it('calls updateRecipe (not createRecipe) on valid submit in edit mode', async () => {
+    mockParams = { id: 'r1' }
+    vi.mocked(getRecipe).mockResolvedValue(existingRecipe)
+    vi.mocked(updateRecipe).mockResolvedValue({ ...existingRecipe, name: 'Existing Dish Updated' })
+    renderForm()
+
+    const nameInput = await screen.findByDisplayValue('Existing Dish')
+    await userEvent.clear(nameInput)
+    await userEvent.type(nameInput, 'Existing Dish Updated')
+    await userEvent.click(screen.getByRole('button', { name: /save/i }))
+
+    expect(updateRecipe).toHaveBeenCalledTimes(1)
+    const [calledId, input] = vi.mocked(updateRecipe).mock.calls[0]
+    expect(calledId).toBe('r1')
+    expect(input.name).toBe('Existing Dish Updated')
+    expect(createRecipe).not.toHaveBeenCalled()
   })
 })

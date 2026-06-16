@@ -65,4 +65,18 @@ describe('Recipes library screen', () => {
     expect(await screen.findByText('No recipes yet — add your first.')).toBeInTheDocument()
     expect(listSharedRecipes).toHaveBeenCalled()
   })
+
+  it('filters by tag with AND (intersection) semantics', async () => {
+    renderPage()
+    await screen.findByText('Veggie Bowl')
+    // The TagPicker renders a <button> per tag; target it by role to avoid the card chip <span>s.
+    await userEvent.click(screen.getByRole('button', { name: 'veg' }))
+    expect(screen.getByText('Veggie Bowl')).toBeInTheDocument()
+    expect(screen.queryByText('Protein Pancakes')).not.toBeInTheDocument()
+    // Adding a second tag requires BOTH — no fixture has veg AND high-protein, so none match.
+    await userEvent.click(screen.getByRole('button', { name: 'high-protein' }))
+    expect(screen.queryByText('Veggie Bowl')).not.toBeInTheDocument()
+    expect(screen.queryByText('Protein Pancakes')).not.toBeInTheDocument()
+    expect(screen.getByText(/no recipes match/i)).toBeInTheDocument()
+  })
 })
