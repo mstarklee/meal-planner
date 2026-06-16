@@ -4,8 +4,8 @@ create table recipes (
   household_id uuid not null references households(id) on delete cascade,
   created_by uuid not null references auth.users(id) default auth.uid(),
   name text not null,
-  photo_url text,
-  link_url text,
+  photo_url text not null default '',
+  link_url text not null default '',
   meal_types text[] not null default '{}',
   tags text[] not null default '{}',
   calories int,
@@ -31,21 +31,23 @@ create policy "recipes read" on recipes for select
 create policy "recipes insert" on recipes for insert
   with check (created_by = auth.uid() and household_id = current_household_id());
 
--- update/delete: only the creator
+-- update/delete: only the creator; an update must keep the recipe in the caller's household
 create policy "recipes update" on recipes for update
-  using (created_by = auth.uid()) with check (created_by = auth.uid());
+  using (created_by = auth.uid())
+  with check (created_by = auth.uid() and household_id = current_household_id());
 create policy "recipes delete" on recipes for delete
   using (created_by = auth.uid());
 
--- Storage bucket for recipe photos (public read)
-insert into storage.buckets (id, name, public)
-  values ('recipe-photos', 'recipe-photos', true)
+-- Storage bucket for recipe photos (public read, images only, 5 MB cap)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('recipe-photos', 'recipe-photos', true, 5242880,
+    array['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
   on conflict (id) do nothing;
 
--- authenticated users may upload to the bucket; read is public
+-- read is public; authenticated users may upload only into their own uid-prefixed folder
 drop policy if exists "recipe photos read" on storage.objects;
 create policy "recipe photos read" on storage.objects for select
   using (bucket_id = 'recipe-photos');
 drop policy if exists "recipe photos insert" on storage.objects;
 create policy "recipe photos insert" on storage.objects for insert to authenticated
-  with check (bucket_id = 'recipe-photos');
+  with check (bucket_id = 'recipe-photos' and (storage.foldername(name))[1] = auth.uid()::text);
