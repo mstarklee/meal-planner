@@ -15,7 +15,9 @@ interface IngredientRow {
 }
 
 function numFromInput(v: string): number | null {
-  return v === '' ? null : Number(v)
+  if (v === '') { return null }
+  const n = Number(v)
+  return Number.isNaN(n) ? null : n
 }
 
 export default function RecipeForm() {
@@ -25,6 +27,7 @@ export default function RecipeForm() {
 
   const [loading, setLoading] = useState(Boolean(id))
   const [busy, setBusy] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [name, setName] = useState('')
@@ -84,10 +87,13 @@ export default function RecipeForm() {
     const file = e.target.files?.[0]
     if (!file) { return }
     setError(null)
+    setPhotoUploading(true)
     try {
       setPhotoUrl(await uploadRecipePhoto(file))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload photo')
+    } finally {
+      setPhotoUploading(false)
     }
   }
 
@@ -208,8 +214,9 @@ export default function RecipeForm() {
         </label>
 
         {error && <p className="text-red-600 text-sm">{error}</p>}
-        <button disabled={busy} className="w-full bg-brand text-white font-bold rounded-xl p-3 disabled:opacity-50">
-          {busy ? 'Saving…' : 'Save recipe'}
+        <button disabled={busy || photoUploading}
+          className="w-full bg-brand text-white font-bold rounded-xl p-3 disabled:opacity-50">
+          {busy ? 'Saving…' : photoUploading ? 'Uploading photo…' : 'Save recipe'}
         </button>
       </form>
     </div>
