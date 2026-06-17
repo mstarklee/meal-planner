@@ -10,9 +10,10 @@ vi.mock('../lib/recipes', () => ({
 }))
 vi.mock('../context/HouseholdProvider', () => ({ useHousehold: () => ({ householdId: 'h1' }) }))
 let mockParams: { id?: string } = {}
+let mockLocation: { state: unknown } = { state: null }
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>()
-  return { ...actual, useParams: () => mockParams, useNavigate: () => vi.fn() }
+  return { ...actual, useParams: () => mockParams, useNavigate: () => vi.fn(), useLocation: () => mockLocation }
 })
 
 import RecipeForm from './RecipeForm'
@@ -32,7 +33,7 @@ const existingRecipe: Recipe = {
 }
 
 describe('RecipeForm', () => {
-  beforeEach(() => { vi.clearAllMocks(); mockParams = {} })
+  beforeEach(() => { vi.clearAllMocks(); mockParams = {}; mockLocation = { state: null } })
 
   it('renders blank for new', () => {
     renderForm()
@@ -106,5 +107,21 @@ describe('RecipeForm', () => {
     expect(calledId).toBe('r1')
     expect(input.name).toBe('Existing Dish Updated')
     expect(createRecipe).not.toHaveBeenCalled()
+  })
+
+  it('prefills fields from an import draft passed via router state', () => {
+    mockLocation = {
+      state: {
+        draft: {
+          name: 'Imported Bowl', photo_url: '', link_url: 'https://x.test',
+          meal_types: ['lunch'], tags: ['veg'], calories: 420, protein: 22, fiber: 7,
+          nutrition_estimated: true, ingredients: [{ amount: '1 cup', item: 'rice' }], steps: ['Cook'], is_shared: false,
+        },
+      },
+    }
+    renderForm()
+    expect(screen.getByDisplayValue('Imported Bowl')).toBeInTheDocument()
+    expect(screen.getByLabelText('Calories')).toHaveValue(420)
+    expect(screen.getByLabelText('Ingredient 1 item')).toHaveValue('rice')
   })
 })

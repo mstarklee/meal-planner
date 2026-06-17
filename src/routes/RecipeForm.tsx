@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { MEAL_TYPES, RECIPE_TAGS, recipeSchema } from '../lib/recipe'
 import type { MealType, Recipe, RecipeInput } from '../lib/recipe'
 import { normalizeRecipeInput } from '../lib/recipeNormalize'
@@ -23,25 +23,31 @@ function numFromInput(v: string): number | null {
 export default function RecipeForm() {
   const nav = useNavigate()
   const { id } = useParams()
+  const location = useLocation()
   const { householdId } = useHousehold()
+
+  // In new mode, an AI-import draft may be passed via router state to prefill the form.
+  const draft = (location.state as { draft?: RecipeInput } | null)?.draft ?? null
 
   const [loading, setLoading] = useState(Boolean(id))
   const [busy, setBusy] = useState(false)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [name, setName] = useState('')
-  const [photoUrl, setPhotoUrl] = useState('')
-  const [mealTypes, setMealTypes] = useState<string[]>([])
-  const [tags, setTags] = useState<string[]>([])
-  const [calories, setCalories] = useState<number | null>(null)
-  const [protein, setProtein] = useState<number | null>(null)
-  const [fiber, setFiber] = useState<number | null>(null)
-  const [nutritionEstimated, setNutritionEstimated] = useState(false)
-  const [ingredients, setIngredients] = useState<IngredientRow[]>([])
-  const [steps, setSteps] = useState<string[]>([])
-  const [linkUrl, setLinkUrl] = useState('')
-  const [isShared, setIsShared] = useState(false)
+  const [name, setName] = useState(() => draft?.name ?? '')
+  const [photoUrl, setPhotoUrl] = useState(() => draft?.photo_url ?? '')
+  const [mealTypes, setMealTypes] = useState<string[]>(() => draft?.meal_types ?? [])
+  const [tags, setTags] = useState<string[]>(() => draft?.tags ?? [])
+  const [calories, setCalories] = useState<number | null>(() => draft?.calories ?? null)
+  const [protein, setProtein] = useState<number | null>(() => draft?.protein ?? null)
+  const [fiber, setFiber] = useState<number | null>(() => draft?.fiber ?? null)
+  const [nutritionEstimated, setNutritionEstimated] = useState(() => draft?.nutrition_estimated ?? false)
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(
+    () => (draft?.ingredients ?? []).map((i) => ({ id: crypto.randomUUID(), amount: i.amount, item: i.item })),
+  )
+  const [steps, setSteps] = useState<string[]>(() => draft?.steps ?? [])
+  const [linkUrl, setLinkUrl] = useState(() => draft?.link_url ?? '')
+  const [isShared, setIsShared] = useState(() => draft?.is_shared ?? false)
 
   useEffect(() => {
     if (!id) { return }

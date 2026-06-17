@@ -55,7 +55,7 @@ export default function Recipes() {
     <div className="px-4 pt-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-brand">Recipes</h1>
-        <Link to="/recipes/new" className="bg-brand text-white font-bold rounded-xl px-4 py-2 text-sm">
+        <Link to="/recipes/import" className="bg-brand text-white font-bold rounded-xl px-4 py-2 text-sm">
           + Add
         </Link>
       </div>
