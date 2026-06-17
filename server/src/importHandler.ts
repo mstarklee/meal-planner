@@ -10,10 +10,10 @@ import { ImportError } from './errors'
 const MODEL = 'gpt-4o'
 
 const bodySchema = z.union([
-  z.object({ source: z.literal('text'), text: z.string().min(1) }),
-  z.object({ source: z.literal('photo'), imageDataUrl: z.string().startsWith('data:image/') }),
-  z.object({ source: z.literal('blog'), url: z.string().min(1) }),
-  z.object({ source: z.literal('youtube'), url: z.string().min(1) }),
+  z.object({ source: z.literal('text'), text: z.string().min(1).max(50_000) }),
+  z.object({ source: z.literal('photo'), imageDataUrl: z.string().startsWith('data:image/').max(4_000_000) }),
+  z.object({ source: z.literal('blog'), url: z.string().min(1).max(2048) }),
+  z.object({ source: z.literal('youtube'), url: z.string().min(1).max(2048) }),
 ])
 
 export async function handleImport(rawBody: unknown, apiKey: string): Promise<{ draft: RecipeDraft }> {

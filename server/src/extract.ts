@@ -1,8 +1,10 @@
 import { ImportError } from './errors'
 
 function isPrivateHost(host: string): boolean {
-  if (host === 'localhost' || host === '0.0.0.0' || host === '::1' || host.endsWith('.local')) return true
-  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
+  const h = host.replace(/^\[|\]$/g, '')
+  if (h === 'localhost' || h === '0.0.0.0' || h.endsWith('.local')) return true
+  if (h.includes(':')) return true
+  const m = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/)
   if (!m) return false
   const a = Number(m[1]), b = Number(m[2])
   if (a === 0 || a === 10 || a === 127) return true
@@ -18,6 +20,21 @@ export function assertSafeUrl(raw: string): URL {
   if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new ImportError('Only http(s) links are supported', 400)
   if (isPrivateHost(url.hostname.toLowerCase())) throw new ImportError('That host is not allowed', 400)
   return url
+}
+
+async function safeFetch(url: URL, headers: Record<string, string>, timeoutMs: number): Promise<Response> {
+  let target = url
+  for (let i = 0; i < 5; i++) {
+    const res = await fetch(target, { headers, redirect: 'manual', signal: AbortSignal.timeout(timeoutMs) })
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location')
+      if (!location) throw new ImportError('Redirect with no Location header', 502)
+      target = assertSafeUrl(new URL(location, target.href).href)
+      continue
+    }
+    return res
+  }
+  throw new ImportError('Too many redirects', 502)
 }
 
 export function htmlToText(html: string): string {
@@ -39,8 +56,8 @@ export async function fetchBlogText(rawUrl: string): Promise<string> {
   const url = assertSafeUrl(rawUrl)
   let res: Response
   try {
-    res = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 meal-planner', 'accept-language': 'en' }, signal: AbortSignal.timeout(10_000) })
-  } catch { throw new ImportError('Could not reach that page', 502) }
+    res = await safeFetch(url, { 'user-agent': 'Mozilla/5.0 meal-planner', 'accept-language': 'en' }, 10_000)
+  } catch (e) { if (e instanceof ImportError) throw e; throw new ImportError('Could not reach that page', 502) }
   if (!res.ok) throw new ImportError(`Could not fetch that page (${res.status})`, 502)
   const text = htmlToText(await res.text())
   if (text.length < 50) throw new ImportError('Could not read recipe text from that page', 422)
@@ -65,10 +82,8 @@ export async function fetchYoutubeText(rawUrl: string): Promise<string> {
   if (!id) throw new ImportError('That is not a recognizable YouTube link', 400)
   let html: string
   try {
-    const res = await fetch(`https://www.youtube.com/watch?v=${id}`, {
-      headers: { 'user-agent': 'Mozilla/5.0', 'accept-language': 'en' },
-      signal: AbortSignal.timeout(10_000),
-    })
+    const ytUrl = new URL(`https://www.youtube.com/watch?v=${id}`)
+    const res = await safeFetch(ytUrl, { 'user-agent': 'Mozilla/5.0', 'accept-language': 'en' }, 10_000)
     if (!res.ok) throw new ImportError(`Could not fetch the video page (${res.status})`, 502)
     html = await res.text()
   } catch (e) {

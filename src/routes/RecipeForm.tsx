@@ -130,7 +130,7 @@ export default function RecipeForm() {
       const saved: Recipe = id
         ? await updateRecipe(id, normalized)
         : await createRecipe(householdId as string, normalized)
-      nav(`/recipes/${saved.id}`)
+      nav(`/recipes/${saved.id}`, { replace: Boolean(draft) })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save recipe')
       setBusy(false)
