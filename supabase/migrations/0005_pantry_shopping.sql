@@ -4,10 +4,10 @@ create table pantry_items (
   household_id uuid not null references households(id) on delete cascade,
   name text not null,
   status text not null default 'good' check (status in ('good', 'low', 'out')),
-  created_at timestamptz not null default now(),
-  unique (household_id, lower(name))
+  created_at timestamptz not null default now()
 );
 
+create unique index pantry_items_household_name_idx on pantry_items (household_id, lower(name));
 create index pantry_items_household_idx on pantry_items (household_id);
 
 alter table pantry_items enable row level security;
