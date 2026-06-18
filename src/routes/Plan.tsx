@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import PoolManager from '../components/PoolManager'
+import PlanTomorrow from '../components/PlanTomorrow'
 
 type PlanMode = 'pool' | 'tomorrow'
 
@@ -27,11 +28,7 @@ export default function Plan() {
       </div>
 
       <div className="mt-4">
-        {mode === 'pool' ? (
-          <PoolManager />
-        ) : (
-          <p className="text-gray-500 text-center">Plan Tomorrow — coming in Task 6.</p>
-        )}
+        {mode === 'pool' ? <PoolManager /> : <PlanTomorrow />}
       </div>
     </div>
   )
