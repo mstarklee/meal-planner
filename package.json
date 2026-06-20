@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "server": "tsx watch server/src/index.ts",
-    "server:start": "tsx server/src/index.ts",
+    "server": "tsx watch --env-file=server/.env server/src/index.ts",
+    "server:start": "tsx --env-file=server/.env server/src/index.ts",
     "typecheck:server": "tsc -p server/tsconfig.json"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.17.0",
+    "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -31,6 +32,7 @@
     "@types/node": "^24.12.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
     "eslint": "^10.3.0",
@@ -45,6 +47,7 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
     "vite-plugin-pwa": "^1.3.0",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "workbox-precaching": "^7.3.0"
   }
 }
