@@ -9,8 +9,8 @@ export type ImportPayload =
   | { source: 'youtube'; url: string }
 
 export async function importRecipe(payload: ImportPayload): Promise<RecipeDraft> {
-  const api = import.meta.env.VITE_IMPORT_API_URL as string | undefined
-  if (!api) throw new Error('Import is not configured (VITE_IMPORT_API_URL missing)')
+  // Empty/unset base => same-origin (production on Vercel). Local dev sets it to http://localhost:8787.
+  const api = (import.meta.env.VITE_IMPORT_API_URL as string | undefined) ?? ''
   const { data: { session } } = await supabase.auth.getSession()
   const token = session?.access_token
   if (!token) throw new Error('You must be signed in to import')
