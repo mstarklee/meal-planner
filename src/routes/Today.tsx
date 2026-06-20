@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useHousehold } from '../context/HouseholdProvider'
-import { supabase } from '../lib/supabase'
 import { todayDate, formatDisplayDate, greeting } from '../lib/mealPlan'
 import type { DailyPick, PickSlot } from '../lib/mealPlan'
 import { getPicksForDate } from '../lib/mealPlans'
@@ -69,9 +69,7 @@ export default function Today() {
           </h1>
           <p className="text-sm text-gray-500">{formatDisplayDate(today)}</p>
         </div>
-        <button className="text-sm text-gray-400" onClick={() => supabase.auth.signOut()}>
-          Sign out
-        </button>
+        <Link to="/settings" aria-label="Settings" className="text-2xl leading-none text-gray-400">⚙️</Link>
       </div>
 
       {loading ? (

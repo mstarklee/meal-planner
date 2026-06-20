@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('./auth', () => ({ verifySupabaseToken: vi.fn() }))
 vi.mock('./importHandler', () => ({ handleImport: vi.fn() }))
+// These pull in the Supabase client factory (which requires env at import time);
+// mock them so the app module loads without real credentials in tests.
+vi.mock('./subscribe', () => ({ handleSubscribe: vi.fn() }))
+vi.mock('./reminders', () => ({ handleCronReminders: vi.fn() }))
 
 import { app } from './app'
 import { verifySupabaseToken } from './auth'
@@ -39,7 +43,7 @@ describe('POST /api/import-recipe', () => {
 
 describe('GET /health', () => {
   it('responds ok', async () => {
-    const res = await app.request('/health')
+    const res = await app.request('/api/health')
     expect(await res.json()).toEqual({ ok: true })
   })
 })

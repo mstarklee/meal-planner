@@ -13,6 +13,7 @@ import RecipeForm from './routes/RecipeForm'
 import RecipeDetail from './routes/RecipeDetail'
 import Shop from './routes/Shop'
 import Pantry from './routes/Pantry'
+import Settings from './routes/Settings'
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
                   <Route path="recipes/:id/edit" element={<RecipeForm />} />
                   <Route path="shop" element={<Shop />} />
                   <Route path="pantry" element={<Pantry />} />
+                  <Route path="settings" element={<Settings />} />
                 </Route>
               </Route>
             </Route>

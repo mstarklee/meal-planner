@@ -9,6 +9,7 @@ describe('defaultTargets', () => {
       target_fiber: 30,
       evening_reminder_time: '20:00',
       morning_reminder_time: '07:00',
+      timezone: 'UTC',
     })
   })
 })
