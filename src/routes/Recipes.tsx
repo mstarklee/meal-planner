@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import RecipeCard from '../components/RecipeCard'
 import TagPicker from '../components/TagPicker'
+import ScreenHeader from '../components/ScreenHeader'
+import TopBar from '../components/TopBar'
+import Icon from '../components/Icon'
+import SegmentedTabs from '../components/SegmentedTabs'
+import { Reveal } from '../components/motion'
 import { useHousehold } from '../context/HouseholdProvider'
 import { listMyRecipes, listSharedRecipes } from '../lib/recipes'
 import { RECIPE_TAGS } from '../lib/recipe'
@@ -52,51 +57,58 @@ export default function Recipes() {
   const filtersActive = search.trim() !== '' || activeTags.length > 0
 
   return (
-    <div className="px-4 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-brand">Recipes</h1>
-        <Link to="/recipes/import" className="bg-brand text-white font-bold rounded-xl px-4 py-2 text-sm">
-          + Add
-        </Link>
-      </div>
+    <>
+      <TopBar
+        actions={
+          <Link to="/recipes/import" className="btn-primary text-[13px] py-2">
+            <Icon name="plus" size={15} /> Add
+          </Link>
+        }
+      />
+      <div className="screen">
+      <ScreenHeader eyebrow="The Library" title="Recipes" />
 
-      <div role="tablist" aria-label="Recipe source" className="flex mt-4 bg-brand-soft rounded-xl p-1">
-        {([
+      <SegmentedTabs
+        ariaLabel="Recipe source"
+        value={tab}
+        onChange={setTab}
+        options={[
           ['mine', 'My Recipes'],
           ['shared', 'Shared Library'],
-        ] as const).map(([value, label]) => (
-          <button key={value} type="button" role="tab" aria-selected={tab === value}
-            onClick={() => setTab(value)}
-            className={`flex-1 text-sm font-semibold rounded-lg py-2 ${
-              tab === value ? 'bg-brand text-white' : 'text-gray-500'}`}>
-            {label}
-          </button>
-        ))}
+        ] as const}
+      />
+
+      <div className="relative mt-5">
+        <span className="absolute left-0.5 top-1/2 -translate-y-1/2 text-ink-faint">
+          <Icon name="search" size={18} />
+        </span>
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)}
+          aria-label="Search recipes" placeholder="Search recipes…"
+          className="w-full border-0 border-b border-ink/15 bg-transparent py-2.5 pl-8 pr-3 text-[15px] placeholder:text-ink-faint focus:outline-none focus:border-terracotta" />
       </div>
 
-      <input type="search" value={search} onChange={(e) => setSearch(e.target.value)}
-        aria-label="Search recipes" placeholder="Search recipes…"
-        className="w-full border rounded-xl p-3 mt-4" />
-
-      <div className="mt-3">
+      <div className="mt-4">
         <TagPicker label="Filter by tag" options={RECIPE_TAGS} selected={activeTags} onChange={setActiveTags} />
       </div>
 
-      {error && <p className="text-red-600 text-sm mt-4">{error}</p>}
+      {error && <p className="text-terracotta-dark text-sm mt-4">{error}</p>}
 
       {loading ? (
-        <p className="text-gray-500 mt-6">Loading…</p>
+        <p className="text-ink-soft mt-8">Loading…</p>
       ) : filtered.length === 0 ? (
-        <p className="text-gray-500 mt-6">
+        <p className="text-ink-soft mt-8 font-display text-lg italic">
           {filtersActive ? 'No recipes match your filters.' : 'No recipes yet — add your first.'}
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          {filtered.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+        <div className="grid grid-cols-2 gap-x-4 gap-y-7 mt-6">
+          {filtered.map((recipe, i) => (
+            <Reveal key={recipe.id} delay={Math.min(i, 6) * 0.05}>
+              <RecipeCard recipe={recipe} />
+            </Reveal>
           ))}
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }

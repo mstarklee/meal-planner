@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useHousehold } from '../context/HouseholdProvider'
 import { supabase } from '../lib/supabase'
 import { defaultTargets } from '../lib/householdDefaults'
 import { updateReminderSettings, browserTimezone } from '../lib/settingsData'
 import { enablePush, getPushState, type PushState } from '../lib/push'
 import { getStaples, addStaple, removeStaple, type Staple } from '../lib/staples'
+import TopBar from '../components/TopBar'
 
 // HH:MM:SS or HH:MM -> HH:MM for <input type="time">
 function toTimeInput(value: string | undefined): string {
@@ -14,7 +14,6 @@ function toTimeInput(value: string | undefined): string {
 }
 
 export default function Settings() {
-  const navigate = useNavigate()
   const { householdId, settings, refresh } = useHousehold()
   const base = settings ?? defaultTargets()
 
@@ -95,11 +94,9 @@ export default function Settings() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-10 space-y-6">
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={() => navigate(-1)} className="text-brand text-xl">←</button>
-        <h1 className="text-2xl font-bold text-brand">Settings</h1>
-      </div>
+    <>
+      <TopBar variant="back" title="Settings" />
+      <div className="screen space-y-6 pt-3">
 
       {/* Notifications */}
       <section className="space-y-2">
@@ -184,6 +181,7 @@ export default function Settings() {
         <button type="button" onClick={() => supabase.auth.signOut()}
           className="text-sm text-red-600 font-semibold">Sign out</button>
       </section>
-    </div>
+      </div>
+    </>
   )
 }

@@ -4,6 +4,7 @@ import { importRecipe } from '../lib/recipeImport'
 import type { ImportPayload } from '../lib/recipeImport'
 import { draftToRecipeInput } from '../lib/recipeDraft'
 import { fileToDownscaledDataUrl } from '../lib/image'
+import TopBar from '../components/TopBar'
 
 type Source = 'text' | 'photo' | 'blog' | 'youtube'
 const SOURCES: { key: Source; label: string }[] = [
@@ -51,8 +52,10 @@ export default function RecipeImport() {
   }
 
   return (
-    <div className="min-h-screen px-6 py-8 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold text-brand mb-1">Import a recipe</h1>
+    <>
+      <TopBar variant="back" title="Import a recipe" />
+      <div className="screen max-w-md mx-auto pt-4">
+      <h1 className="font-display text-title font-semibold text-ink mb-1">Import a recipe</h1>
       <p className="text-gray-500 mb-5">AI reads the source and fills in a draft you can review.</p>
 
       <div role="tablist" aria-label="Import source" className="flex flex-wrap gap-2">
@@ -90,9 +93,10 @@ export default function RecipeImport() {
         className="w-full mt-5 bg-brand text-white font-bold rounded-xl p-3 disabled:opacity-50">
         {busy ? 'Reading…' : 'Generate draft'}
       </button>
-      <Link to="/recipes/new" className="block text-center text-brand font-semibold text-sm mt-3">
+      <Link to="/recipes/new" className="block text-center text-terracotta font-semibold text-sm mt-3">
         Enter manually instead
       </Link>
-    </div>
+      </div>
+    </>
   )
 }

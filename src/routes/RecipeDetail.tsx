@@ -1,25 +1,27 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { motion, useScroll, useTransform } from 'motion/react'
 import type { Recipe } from '../lib/recipe'
 import { deleteRecipe, getRecipe } from '../lib/recipes'
 import { useAuth } from '../context/AuthProvider'
+import TopBar from '../components/TopBar'
+import Icon from '../components/Icon'
 
 function nutritionLine(recipe: Recipe): string | null {
   const parts: string[] = []
-  if (recipe.calories !== null) { parts.push(`${recipe.calories}cal`) }
+  if (recipe.calories !== null) { parts.push(`${recipe.calories} cal`) }
   if (recipe.protein !== null) { parts.push(`${recipe.protein}g protein`) }
   if (recipe.fiber !== null) { parts.push(`${recipe.fiber}g fiber`) }
-  return parts.length > 0 ? parts.join(' · ') : null
+  return parts.length > 0 ? parts.join('  ·  ') : null
 }
-
-const BackLink = () => (
-  <Link to="/recipes" className="text-brand font-semibold text-sm">← Back</Link>
-)
 
 export default function RecipeDetail() {
   const nav = useNavigate()
   const { id } = useParams()
   const { session } = useAuth()
+  const { scrollY } = useScroll()
+  const heroY = useTransform(scrollY, [0, 320], [0, 80])
+  const heroScale = useTransform(scrollY, [-160, 0], [1.25, 1])
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,104 +57,128 @@ export default function RecipeDetail() {
   }
 
   if (loading) {
-    return <div className="min-h-screen px-6 py-8 max-w-md mx-auto">Loading…</div>
-  }
-
-  if (error) {
     return (
-      <div className="min-h-screen px-6 py-8 max-w-md mx-auto space-y-4">
-        <p className="text-red-600 text-sm">{error}</p>
-        <BackLink />
-      </div>
+      <>
+        <TopBar variant="back" onBack={() => nav('/recipes')} />
+        <div className="screen pt-10 text-ink-soft">Loading…</div>
+      </>
     )
   }
 
-  if (!recipe) {
+  if (error || !recipe) {
     return (
-      <div className="min-h-screen px-6 py-8 max-w-md mx-auto space-y-4">
-        <p className="text-gray-500">Not found</p>
-        <BackLink />
-      </div>
+      <>
+        <TopBar variant="back" onBack={() => nav('/recipes')} />
+        <div className="screen pt-10 space-y-3">
+          <p className="font-display text-lg italic text-ink">{error ?? 'Recipe not found.'}</p>
+        </div>
+      </>
     )
   }
 
   const nutrition = nutritionLine(recipe)
   const isCreator = recipe.created_by === session?.user.id
+  const initial = recipe.name.trim().charAt(0).toUpperCase() || '·'
 
   return (
-    <div className="min-h-screen px-6 py-8 max-w-md mx-auto space-y-5">
-      <BackLink />
+    <>
+      <TopBar
+        variant="back"
+        title={recipe.name}
+        onBack={() => nav('/recipes')}
+        actions={
+          isCreator ? (
+            <Link
+              to={`/recipes/${recipe.id}/edit`}
+              aria-label="Edit recipe"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/15 text-ink-soft transition-colors hover:bg-ink/5"
+            >
+              <Icon name="edit" size={17} />
+            </Link>
+          ) : undefined
+        }
+      />
 
-      {recipe.photo_url && (
-        <img src={recipe.photo_url} alt="" className="w-full rounded-xl object-cover" />
-      )}
-
-      <div>
-        <h1 className="text-2xl font-bold text-brand">{recipe.name}</h1>
-        {nutrition && (
-          <p className="text-sm text-gray-500 mt-1">
-            {nutrition}
-            {recipe.nutrition_estimated && (
-              <span className="ml-2 text-gray-400">≈ estimated</span>
-            )}
-          </p>
+      {/* Parallax hero */}
+      <div className="relative h-72 overflow-hidden bg-bone-deep">
+        {recipe.photo_url ? (
+          <motion.img
+            src={recipe.photo_url}
+            alt=""
+            style={{ y: heroY, scale: heroScale }}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <span className="monogram absolute inset-0 text-[9rem]">{initial}</span>
         )}
+        <div className="absolute inset-0 scrim-b" />
+        <div className="absolute inset-x-0 bottom-0 p-5">
+          <h1 className="font-display text-[30px] leading-[1.05] font-semibold text-bone-surface drop-shadow-sm">
+            {recipe.name}
+          </h1>
+          {nutrition && (
+            <p className="mt-1.5 text-[13px] text-bone-surface/85 nums">
+              {nutrition}
+              {recipe.nutrition_estimated && <span className="opacity-70"> · ≈ estimated</span>}
+            </p>
+          )}
+        </div>
       </div>
 
-      {recipe.tags.length > 0 && (
-        <div className="flex gap-1 flex-wrap">
-          {recipe.tags.map((tag) => (
-            <span key={tag}
-              className="text-[10px] px-2 py-0.5 rounded-full bg-brand-mint text-brand-dark font-semibold">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {recipe.link_url && (
-        <a href={recipe.link_url} target="_blank" rel="noreferrer"
-          className="inline-block bg-brand text-white font-bold rounded-xl px-4 py-2 text-sm">
-          ▶ Watch video / open blog
-        </a>
-      )}
-
-      {recipe.ingredients.length > 0 && (
-        <div>
-          <h2 className="text-xs font-bold text-gray-500 uppercase">Ingredients</h2>
-          <ul className="mt-2 space-y-1">
-            {recipe.ingredients.map((ing, i) => (
-              <li key={i} className="text-sm text-gray-900">
-                {ing.amount ? `${ing.amount} ${ing.item}` : ing.item}
-              </li>
+      <div className="screen space-y-7 pt-5">
+        {recipe.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {recipe.tags.map((tag) => (
+              <span key={tag}
+                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-eyebrow ${
+                  tag === 'cheat' ? 'bg-terracotta text-bone-surface' : 'bg-olive-soft text-olive-dark'
+                }`}>
+                {tag}
+              </span>
             ))}
-          </ul>
-        </div>
-      )}
+          </div>
+        )}
 
-      {recipe.steps.length > 0 && (
-        <div>
-          <h2 className="text-xs font-bold text-gray-500 uppercase">Steps</h2>
-          <ol className="mt-2 space-y-2 list-decimal list-inside">
-            {recipe.steps.map((step, i) => (
-              <li key={i} className="text-sm text-gray-900">{step}</li>
-            ))}
-          </ol>
-        </div>
-      )}
+        {recipe.link_url && (
+          <a href={recipe.link_url} target="_blank" rel="noreferrer" className="btn-primary text-[13px]">
+            Watch / open recipe
+          </a>
+        )}
 
-      {isCreator && (
-        <div className="flex gap-3 pt-2">
-          <Link to={`/recipes/${recipe.id}/edit`}
-            className="flex-1 text-center bg-brand text-white font-bold rounded-xl px-4 py-2 text-sm">
-            Edit
-          </Link>
+        {recipe.ingredients.length > 0 && (
+          <div className="pt-2 rule">
+            <h2 className="eyebrow mb-3 mt-4">Ingredients</h2>
+            <ul className="space-y-1.5">
+              {recipe.ingredients.map((ing, i) => (
+                <li key={i} className="text-[15px] text-ink-soft">
+                  {ing.amount ? `${ing.amount} · ${ing.item}` : ing.item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {recipe.steps.length > 0 && (
+          <div className="pt-2 rule">
+            <h2 className="eyebrow mb-3 mt-4">Method</h2>
+            <ol className="space-y-3.5">
+              {recipe.steps.map((step, i) => (
+                <li key={i} className="flex gap-3.5 text-[15px] leading-relaxed text-ink-soft">
+                  <span className="font-display text-[17px] leading-none text-terracotta">{i + 1}</span>
+                  <span>{step}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        {isCreator && (
           <button type="button" onClick={onDelete}
-            className="flex-1 text-center border border-red-500 text-red-500 font-bold rounded-xl px-4 py-2 text-sm">
-            Delete
+            className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
+            Delete recipe
           </button>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   )
 }

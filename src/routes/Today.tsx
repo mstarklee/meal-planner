@@ -7,6 +7,10 @@ import { getPicksForDate } from '../lib/mealPlans'
 import { defaultTargets } from '../lib/householdDefaults'
 import NutritionStrip from '../components/NutritionStrip'
 import MealCard from '../components/MealCard'
+import ScreenHeader from '../components/ScreenHeader'
+import TopBar from '../components/TopBar'
+import Icon from '../components/Icon'
+import { Stagger, StaggerItem } from '../components/motion'
 
 const FAMILY_SLOTS: { slot: PickSlot; label: string }[] = [
   { slot: 'breakfast', label: 'Breakfast' },
@@ -61,64 +65,77 @@ export default function Today() {
   const hasPicks = picks.length > 0
 
   return (
-    <div className="px-4 pt-6 space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-brand">
-            {greeting()}{displayName ? `, ${displayName}` : ''}
-          </h1>
-          <p className="text-sm text-gray-500">{formatDisplayDate(today)}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => navigate('/plan', { state: { mode: 'days', date: today } })}
-            className="text-sm font-semibold text-brand">Edit</button>
-          <Link to="/settings" aria-label="Settings" className="text-2xl leading-none text-gray-400">⚙️</Link>
-        </div>
-      </div>
+    <>
+      <TopBar
+        actions={
+          <Link
+            to="/settings"
+            aria-label="Settings"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/15 text-ink-soft transition-colors hover:bg-ink/5"
+          >
+            <Icon name="settings" size={18} />
+          </Link>
+        }
+      />
+      <div className="screen">
+        <ScreenHeader
+          size="md"
+          eyebrow={formatDisplayDate(today)}
+          title={`${greeting()}${displayName ? `, ${displayName}` : ''}`}
+        />
 
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-ink-soft">Loading…</p>
       ) : error ? (
-        <p className="text-red-600 text-sm">{error}</p>
+        <p className="text-terracotta-dark text-sm">{error}</p>
       ) : !hasPicks ? (
-        <div className="text-center py-10 space-y-2">
-          <p className="text-gray-400 text-4xl">🍽️</p>
-          <p className="text-gray-500">No meals planned for today.</p>
-          <p className="text-sm text-gray-400">Go to the Plan tab to set up tomorrow's meals.</p>
+        <div className="py-20 text-center">
+          <div className="mx-auto mb-5 h-px w-12 bg-ink/15" />
+          <p className="font-display text-[26px] font-light italic text-ink">Nothing planned yet.</p>
+          <p className="mt-2 text-[14px] text-ink-soft">Head to the Plan tab to set up tomorrow&apos;s meals.</p>
         </div>
       ) : (
-        <>
-          {/* Nutrition strip */}
-          <NutritionStrip
-            totals={totals}
-            targets={{ calories: targets.target_calories, protein: targets.target_protein, fiber: targets.target_fiber }}
-          />
+        <Stagger className="space-y-7 pt-1">
+          <StaggerItem>
+            <NutritionStrip
+              totals={totals}
+              targets={{ calories: targets.target_calories, protein: targets.target_protein, fiber: targets.target_fiber }}
+            />
+          </StaggerItem>
 
           {/* Family meals */}
-          <div className="space-y-3">
+          <StaggerItem className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="eyebrow">Today&apos;s Table</h2>
+              <button
+                type="button"
+                onClick={() => navigate('/plan', { state: { mode: 'days', date: today } })}
+                className="flex items-center gap-1 text-[13px] font-semibold text-terracotta transition-colors hover:text-terracotta-dark"
+              >
+                <Icon name="edit" size={14} /> Edit meals
+              </button>
+            </div>
             {FAMILY_SLOTS.map(({ slot, label }) => {
               const pick = pickBySlot.get(slot)
               if (!pick) return null
               return <MealCard key={slot} recipe={pick.recipe} label={label} />
             })}
-          </div>
+          </StaggerItem>
 
           {/* Kid's school box */}
           {hasKids && (pickBySlot.has('kid-lunch') || pickBySlot.has('kid-snack')) && (
-            <div>
-              <h2 className="text-xs font-bold text-kid uppercase mb-2">Kid's School Box</h2>
-              <div className="space-y-3">
-                {KID_SLOTS.map(({ slot, label }) => {
-                  const pick = pickBySlot.get(slot)
-                  if (!pick) return null
-                  return <MealCard key={slot} recipe={pick.recipe} label={label} isKid />
-                })}
-              </div>
-            </div>
+            <StaggerItem className="space-y-3">
+              <h2 className="eyebrow mb-1 text-olive">Kid&apos;s School Box</h2>
+              {KID_SLOTS.map(({ slot, label }) => {
+                const pick = pickBySlot.get(slot)
+                if (!pick) return null
+                return <MealCard key={slot} recipe={pick.recipe} label={label} isKid />
+              })}
+            </StaggerItem>
           )}
-        </>
+        </Stagger>
       )}
-    </div>
+      </div>
+    </>
   )
 }
