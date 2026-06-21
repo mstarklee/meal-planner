@@ -93,7 +93,7 @@ export default function RecipeForm() {
   useEffect(() => {
     if (!householdId) { return }
     let active = true
-    void getStaples(householdId).then((s) => { if (active) { setStapleNames(s.map((x) => x.name)) } })
+    void getStaples(householdId).then((s) => { if (active) { setStapleNames(s.map((x) => x.name)) } }).catch(() => undefined)
     return () => { active = false }
   }, [householdId])
 
