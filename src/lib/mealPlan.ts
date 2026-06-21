@@ -73,3 +73,31 @@ export function greeting(): string {
   if (h < 17) return 'Good afternoon'
   return 'Good evening'
 }
+
+const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+
+// Pure calendar arithmetic on a YYYY-MM-DD string, done in UTC to avoid DST/timezone drift.
+export function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+export function nextWeekStartDate(d: Date = new Date()): string {
+  return addDays(weekStartDate(d), 7)
+}
+
+function dayStripLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  return `${WEEKDAY_ABBR[d.getUTCDay()]} ${d.getUTCDate()}`
+}
+
+// 14 consecutive days starting today (this + next week). index 0 = Today, 1 = Tomorrow.
+export function planDays(today: Date = new Date()): { date: string; label: string }[] {
+  const start = today.toISOString().slice(0, 10)
+  return Array.from({ length: 14 }, (_, i) => {
+    const date = addDays(start, i)
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : dayStripLabel(date)
+    return { date, label }
+  })
+}
