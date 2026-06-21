@@ -7,11 +7,15 @@ import { createRecipe, getRecipe, updateRecipe, uploadRecipePhoto } from '../lib
 import { useHousehold } from '../context/HouseholdProvider'
 import TagPicker from '../components/TagPicker'
 import DynamicList from '../components/DynamicList'
+import { getStaples, addStaple } from '../lib/staples'
+import { isStapleItem } from '../lib/pantry'
 
 interface IngredientRow {
   id: string
   amount: string
   item: string
+  staple: boolean
+  stapleTouched: boolean
 }
 
 function numFromInput(v: string): number | null {
@@ -43,11 +47,15 @@ export default function RecipeForm() {
   const [fiber, setFiber] = useState<number | null>(() => draft?.fiber ?? null)
   const [nutritionEstimated, setNutritionEstimated] = useState(() => draft?.nutrition_estimated ?? false)
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
-    () => (draft?.ingredients ?? []).map((i) => ({ id: crypto.randomUUID(), amount: i.amount, item: i.item })),
+    () => (draft?.ingredients ?? []).map((i) => ({
+      id: crypto.randomUUID(), amount: i.amount, item: i.item,
+      staple: i.staple ?? false, stapleTouched: i.staple != null,
+    })),
   )
   const [steps, setSteps] = useState<string[]>(() => draft?.steps ?? [])
   const [linkUrl, setLinkUrl] = useState(() => draft?.link_url ?? '')
   const [isShared, setIsShared] = useState(() => draft?.is_shared ?? false)
+  const [stapleNames, setStapleNames] = useState<string[]>([])
 
   useEffect(() => {
     if (!id) { return }
@@ -65,7 +73,10 @@ export default function RecipeForm() {
         setProtein(recipe.protein)
         setFiber(recipe.fiber)
         setNutritionEstimated(recipe.nutrition_estimated)
-        setIngredients(recipe.ingredients.map((i) => ({ id: crypto.randomUUID(), amount: i.amount, item: i.item })))
+        setIngredients(recipe.ingredients.map((i) => ({
+          id: crypto.randomUUID(), amount: i.amount, item: i.item,
+          staple: i.staple ?? false, stapleTouched: i.staple != null,
+        })))
         setSteps(recipe.steps)
         setLinkUrl(recipe.link_url)
         setIsShared(recipe.is_shared)
@@ -79,11 +90,30 @@ export default function RecipeForm() {
     return () => { active = false }
   }, [id])
 
+  useEffect(() => {
+    if (!householdId) { return }
+    let active = true
+    void getStaples(householdId).then((s) => { if (active) { setStapleNames(s.map((x) => x.name)) } })
+    return () => { active = false }
+  }, [householdId])
+
   function addIngredient() {
-    setIngredients([...ingredients, { id: crypto.randomUUID(), amount: '', item: '' }])
+    setIngredients([...ingredients, { id: crypto.randomUUID(), amount: '', item: '', staple: false, stapleTouched: false }])
   }
   function setIngredient(i: number, patch: Partial<Pick<IngredientRow, 'amount' | 'item'>>) {
-    setIngredients(ingredients.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
+    setIngredients(ingredients.map((row, idx) => {
+      if (idx !== i) { return row }
+      const next = { ...row, ...patch }
+      // Until the user manually toggles, keep the staple default in sync with the item name.
+      if (!next.stapleTouched && patch.item !== undefined) {
+        next.staple = isStapleItem(patch.item, stapleNames)
+      }
+      return next
+    }))
+  }
+  function toggleStaple(i: number) {
+    setIngredients(ingredients.map((row, idx) =>
+      idx === i ? { ...row, staple: !row.staple, stapleTouched: true } : row))
   }
   function removeIngredient(i: number) {
     setIngredients(ingredients.filter((_, idx) => idx !== i))
@@ -117,7 +147,7 @@ export default function RecipeForm() {
       protein,
       fiber,
       nutrition_estimated: nutritionEstimated,
-      ingredients: ingredients.map((row) => ({ amount: row.amount, item: row.item })),
+      ingredients: ingredients.map((row) => ({ amount: row.amount, item: row.item, staple: row.staple })),
       steps,
       is_shared: isShared,
     }
@@ -130,6 +160,13 @@ export default function RecipeForm() {
       const saved: Recipe = id
         ? await updateRecipe(id, normalized)
         : await createRecipe(householdId as string, normalized)
+      // Best-effort: learn newly-marked staples for future recipes. Never block the save.
+      const known = new Set(stapleNames.map((n) => n.toLowerCase()))
+      const newStaples = normalized.ingredients
+        .filter((ing) => ing.staple && ing.item && !known.has(ing.item.toLowerCase()))
+        .map((ing) => ing.item)
+      await Promise.all(newStaples.map((name) =>
+        addStaple(householdId as string, name).catch(() => undefined)))
       nav(`/recipes/${saved.id}`, { replace: Boolean(draft) })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save recipe')
@@ -189,15 +226,33 @@ export default function RecipeForm() {
           <label className="text-xs font-bold text-gray-500 uppercase">Ingredients</label>
           <div className="space-y-2 mt-1">
             {ingredients.map((row, i) => (
-              <div key={row.id} className="flex gap-2">
-                <input className="w-24 border rounded-xl p-3" aria-label={`Ingredient ${i + 1} amount`}
-                  value={row.amount} onChange={(e) => setIngredient(i, { amount: e.target.value })}
-                  placeholder="1 cup" />
-                <input className="flex-1 border rounded-xl p-3" aria-label={`Ingredient ${i + 1} item`}
-                  value={row.item} onChange={(e) => setIngredient(i, { item: e.target.value })}
-                  placeholder="rice" />
-                <button type="button" aria-label={`Remove ingredient ${i + 1}`}
-                  className="px-3 text-red-500" onClick={() => removeIngredient(i)}>✕</button>
+              <div key={row.id} className="space-y-1">
+                <div className="flex gap-2">
+                  <input className="w-24 border rounded-xl p-3" aria-label={`Ingredient ${i + 1} amount`}
+                    value={row.amount} onChange={(e) => setIngredient(i, { amount: e.target.value })}
+                    placeholder="1 cup" />
+                  <input className="flex-1 border rounded-xl p-3" aria-label={`Ingredient ${i + 1} item`}
+                    value={row.item} onChange={(e) => setIngredient(i, { item: e.target.value })}
+                    placeholder="rice" />
+                  <button type="button" aria-label={`Remove ingredient ${i + 1}`}
+                    className="px-3 text-red-500" onClick={() => removeIngredient(i)}>✕</button>
+                </div>
+                <div className="flex gap-1 ml-1" role="group" aria-label={`Ingredient ${i + 1} type`}>
+                  <button type="button"
+                    aria-pressed={!row.staple}
+                    onClick={() => { if (row.staple) { toggleStaple(i) } }}
+                    className={`text-xs font-semibold rounded-full px-3 py-1 ${
+                      !row.staple ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500'}`}>
+                    Main
+                  </button>
+                  <button type="button"
+                    aria-pressed={row.staple}
+                    onClick={() => { if (!row.staple) { toggleStaple(i) } }}
+                    className={`text-xs font-semibold rounded-full px-3 py-1 ${
+                      row.staple ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500'}`}>
+                    Staple (Always have at home)
+                  </button>
+                </div>
               </div>
             ))}
           </div>

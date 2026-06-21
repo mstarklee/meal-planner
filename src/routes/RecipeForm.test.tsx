@@ -8,6 +8,10 @@ vi.mock('../lib/recipes', () => ({
   updateRecipe: vi.fn(),
   uploadRecipePhoto: vi.fn(),
 }))
+vi.mock('../lib/staples', () => ({
+  getStaples: vi.fn().mockResolvedValue([]),
+  addStaple: vi.fn().mockResolvedValue(undefined),
+}))
 vi.mock('../context/HouseholdProvider', () => ({ useHousehold: () => ({ householdId: 'h1' }) }))
 let mockParams: { id?: string } = {}
 let mockLocation: { state: unknown } = { state: null }
