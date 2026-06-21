@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useHousehold } from '../context/HouseholdProvider'
-import { POOL_SLOTS, POOL_SLOT_LABELS, weekStartDate } from '../lib/mealPlan'
+import { POOL_SLOTS, POOL_SLOT_LABELS, weekStartDate, nextWeekStartDate } from '../lib/mealPlan'
 import type { PoolSlot, PoolEntry } from '../lib/mealPlan'
 import type { Recipe } from '../lib/recipe'
 import { getPool, addToPool, removeFromPool, listRecipesForSlot } from '../lib/mealPlans'
@@ -15,7 +15,8 @@ export default function PoolManager() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const week = weekStartDate()
+  const [weekSel, setWeekSel] = useState<'this' | 'next'>('this')
+  const week = weekSel === 'this' ? weekStartDate() : nextWeekStartDate()
   const slots = kids.length > 0 ? POOL_SLOTS : POOL_SLOTS.filter((s) => s !== 'kid')
 
   useEffect(() => {
@@ -62,6 +63,22 @@ export default function PoolManager() {
 
   return (
     <div className="space-y-4">
+      {/* Week toggle */}
+      <div role="tablist" aria-label="Pool week" className="flex bg-brand-soft rounded-xl p-1">
+        {([
+          ['this', 'This Week'],
+          ['next', 'Next Week'],
+        ] as const).map(([value, label]) => (
+          <button key={value} type="button" role="tab" aria-selected={weekSel === value}
+            onClick={() => setWeekSel(value)}
+            className={`flex-1 text-sm font-semibold rounded-lg py-2 ${
+              weekSel === value ? 'bg-brand text-white' : 'text-gray-500'
+            }`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
       {/* Slot tabs */}
       <div className="flex bg-brand-soft rounded-xl p-1">
         {slots.map((s) => (

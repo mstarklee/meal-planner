@@ -1,7 +1,6 @@
 import { supabase } from './supabase'
 import type { Recipe } from './recipe'
 import type { PoolSlot, PickSlot, PoolEntry, DailyPick } from './mealPlan'
-import { tomorrowDate } from './mealPlan'
 import type { HouseholdSettings } from './householdDefaults'
 
 export async function getPool(householdId: string, slot: PoolSlot, weekStart: string): Promise<PoolEntry[]> {
@@ -59,22 +58,36 @@ export async function getPicksForDate(householdId: string, date: string): Promis
   return (data ?? []) as DailyPick[]
 }
 
-export async function lockInTomorrow(householdId: string, picks: { recipeId: string; slot: PickSlot }[]): Promise<void> {
-  const date = tomorrowDate()
+export async function setPick(
+  householdId: string,
+  recipeId: string,
+  slot: PickSlot,
+  date: string,
+): Promise<void> {
   const { error: delErr } = await supabase
     .from('daily_picks')
     .delete()
     .eq('household_id', householdId)
+    .eq('slot', slot)
     .eq('pick_date', date)
   if (delErr) throw delErr
-  if (picks.length === 0) return
-  const rows = picks.map((p) => ({
-    household_id: householdId,
-    recipe_id: p.recipeId,
-    slot: p.slot,
-    pick_date: date,
-  }))
-  const { error } = await supabase.from('daily_picks').insert(rows)
+  const { error } = await supabase
+    .from('daily_picks')
+    .insert({ household_id: householdId, recipe_id: recipeId, slot, pick_date: date })
+  if (error) throw error
+}
+
+export async function clearPick(
+  householdId: string,
+  slot: PickSlot,
+  date: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('daily_picks')
+    .delete()
+    .eq('household_id', householdId)
+    .eq('slot', slot)
+    .eq('pick_date', date)
   if (error) throw error
 }
 

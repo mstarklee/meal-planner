@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useHousehold } from '../context/HouseholdProvider'
 import { todayDate, formatDisplayDate, greeting } from '../lib/mealPlan'
 import type { DailyPick, PickSlot } from '../lib/mealPlan'
@@ -26,6 +26,7 @@ export default function Today() {
   const [error, setError] = useState<string | null>(null)
 
   const today = todayDate()
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (!householdId) return
@@ -69,7 +70,11 @@ export default function Today() {
           </h1>
           <p className="text-sm text-gray-500">{formatDisplayDate(today)}</p>
         </div>
-        <Link to="/settings" aria-label="Settings" className="text-2xl leading-none text-gray-400">⚙️</Link>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => navigate('/plan', { state: { mode: 'days', date: today } })}
+            className="text-sm font-semibold text-brand">Edit</button>
+          <Link to="/settings" aria-label="Settings" className="text-2xl leading-none text-gray-400">⚙️</Link>
+        </div>
       </div>
 
       {loading ? (

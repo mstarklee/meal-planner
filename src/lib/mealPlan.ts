@@ -44,22 +44,29 @@ export interface DailyPick {
   recipe: Recipe
 }
 
+function localDateString(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export function weekStartDate(d: Date = new Date()): string {
   const copy = new Date(d)
   const day = copy.getDay()
   const diff = day === 0 ? -6 : 1 - day
   copy.setDate(copy.getDate() + diff)
-  return copy.toISOString().slice(0, 10)
+  return localDateString(copy)
 }
 
 export function todayDate(): string {
-  return new Date().toISOString().slice(0, 10)
+  return localDateString(new Date())
 }
 
 export function tomorrowDate(): string {
   const d = new Date()
   d.setDate(d.getDate() + 1)
-  return d.toISOString().slice(0, 10)
+  return localDateString(d)
 }
 
 export function formatDisplayDate(dateStr: string): string {
@@ -72,4 +79,32 @@ export function greeting(): string {
   if (h < 12) return 'Good morning'
   if (h < 17) return 'Good afternoon'
   return 'Good evening'
+}
+
+const WEEKDAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+
+// Pure calendar arithmetic on a YYYY-MM-DD string, done in UTC to avoid DST/timezone drift.
+export function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+export function nextWeekStartDate(d: Date = new Date()): string {
+  return addDays(weekStartDate(d), 7)
+}
+
+function dayStripLabel(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00Z')
+  return `${WEEKDAY_ABBR[d.getUTCDay()]} ${d.getUTCDate()}`
+}
+
+// 14 consecutive days starting today (this + next week). index 0 = Today, 1 = Tomorrow.
+export function planDays(today: Date = new Date()): { date: string; label: string }[] {
+  const start = localDateString(today)
+  return Array.from({ length: 14 }, (_, i) => {
+    const date = addDays(start, i)
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : dayStripLabel(date)
+    return { date, label }
+  })
 }

@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import PoolManager from '../components/PoolManager'
-import PlanTomorrow from '../components/PlanTomorrow'
+import PlanDays from '../components/PlanDays'
 
-type PlanMode = 'pool' | 'tomorrow'
+type PlanMode = 'pool' | 'days'
 
 export default function Plan() {
-  const [mode, setMode] = useState<PlanMode>('pool')
+  const location = useLocation()
+  const state = (location.state as { mode?: PlanMode; date?: string } | null) ?? null
+  const [mode, setMode] = useState<PlanMode>(state?.mode ?? 'pool')
 
   return (
     <div className="px-4 pt-6">
@@ -14,8 +17,8 @@ export default function Plan() {
       {/* Mode toggle */}
       <div role="tablist" aria-label="Plan mode" className="flex mt-4 bg-brand-soft rounded-xl p-1">
         {([
-          ['pool', "This Week's Pool"],
-          ['tomorrow', 'Plan Tomorrow'],
+          ['pool', 'Pool'],
+          ['days', 'Days'],
         ] as const).map(([value, label]) => (
           <button key={value} type="button" role="tab" aria-selected={mode === value}
             onClick={() => setMode(value)}
@@ -28,7 +31,7 @@ export default function Plan() {
       </div>
 
       <div className="mt-4">
-        {mode === 'pool' ? <PoolManager /> : <PlanTomorrow />}
+        {mode === 'pool' ? <PoolManager /> : <PlanDays initialDate={state?.date} />}
       </div>
     </div>
   )
