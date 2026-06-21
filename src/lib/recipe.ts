@@ -17,7 +17,11 @@ export const recipeSchema = z.object({
   protein: z.number().int().nonnegative().nullable(),
   fiber: z.number().int().nonnegative().nullable(),
   nutrition_estimated: z.boolean(),
-  ingredients: z.array(z.object({ amount: z.string(), item: z.string().trim().min(1, 'Ingredient required') })),
+  ingredients: z.array(z.object({
+    amount: z.string(),
+    item: z.string().trim().min(1, 'Ingredient required'),
+    staple: z.boolean().optional(),
+  })),
   steps: z.array(z.string().trim().min(1, 'Step cannot be empty')),
   is_shared: z.boolean(),
 })

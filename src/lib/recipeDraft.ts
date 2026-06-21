@@ -12,7 +12,11 @@ export const recipeDraftSchema = z.object({
   protein: z.number().int().nonnegative().nullable().default(null),
   fiber: z.number().int().nonnegative().nullable().default(null),
   nutrition_estimated: z.boolean().default(false),
-  ingredients: z.array(z.object({ amount: z.string().default(''), item: z.string() })).default([]),
+  ingredients: z.array(z.object({
+    amount: z.string().default(''),
+    item: z.string(),
+    staple: z.boolean().optional(),
+  })).default([]),
   steps: z.array(z.string()).default([]),
   link_url: z.string().default(''),
 })
@@ -30,7 +34,7 @@ export function draftToRecipeInput(draft: RecipeDraft): RecipeInput {
     protein: draft.protein,
     fiber: draft.fiber,
     nutrition_estimated: draft.nutrition_estimated,
-    ingredients: draft.ingredients.map((i) => ({ amount: i.amount, item: i.item })),
+    ingredients: draft.ingredients.map((i) => ({ amount: i.amount, item: i.item, staple: i.staple })),
     steps: draft.steps,
     is_shared: false,
   }

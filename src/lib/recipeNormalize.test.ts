@@ -12,8 +12,28 @@ describe('normalizeRecipeInput', () => {
       steps: ['Boil', '', '   '],
       is_shared: false,
     })
-    expect(out.ingredients).toEqual([{ amount: '1 cup', item: 'lentils' }])
+    expect(out.ingredients).toEqual([{ amount: '1 cup', item: 'lentils', staple: false }])
     expect(out.steps).toEqual(['Boil'])
     expect(out.name).toBe('Dal')
+  })
+  it('coerces staple to an explicit boolean and preserves true', () => {
+    const out = normalizeRecipeInput({
+      name: 'Paneer',
+      photo_url: '', link_url: '',
+      meal_types: ['dinner'], tags: [],
+      calories: null, protein: null, fiber: null, nutrition_estimated: false,
+      ingredients: [
+        { amount: '200g', item: 'paneer', staple: false },
+        { amount: '1 tsp', item: 'salt', staple: true },
+        { amount: '1', item: 'onion' },
+      ],
+      steps: ['Cook'],
+      is_shared: false,
+    })
+    expect(out.ingredients).toEqual([
+      { amount: '200g', item: 'paneer', staple: false },
+      { amount: '1 tsp', item: 'salt', staple: true },
+      { amount: '1', item: 'onion', staple: false },
+    ])
   })
 })

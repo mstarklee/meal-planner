@@ -71,7 +71,7 @@ describe('RecipeForm', () => {
     expect(householdId).toBe('h1')
     expect(input.name).toBe('Veggie Bowl')
     expect(input.meal_types).toContain('lunch')
-    expect(input.ingredients).toEqual([{ amount: '1 cup', item: 'rice' }])
+    expect(input.ingredients).toEqual([{ amount: '1 cup', item: 'rice', staple: false }])
   })
 
   it('loads and populates an existing recipe in edit mode', async () => {
