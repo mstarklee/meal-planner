@@ -165,7 +165,7 @@ export default function RecipeForm() {
       const newStaples = normalized.ingredients
         .filter((ing) => ing.staple && ing.item && !known.has(ing.item.toLowerCase()))
         .map((ing) => ing.item)
-      await Promise.all(newStaples.map((name) =>
+      void Promise.all(newStaples.map((name) =>
         addStaple(householdId as string, name).catch(() => undefined)))
       nav(`/recipes/${saved.id}`, { replace: Boolean(draft) })
     } catch (err) {
