@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { addDays, nextWeekStartDate, planDays, weekStartDate } from './mealPlan'
+import { addDays, nextWeekStartDate, planDays, weekStartDate, todayDate } from './mealPlan'
 
 describe('addDays', () => {
   it('adds days within a month', () => {
@@ -30,5 +30,20 @@ describe('planDays', () => {
   it('labels later days with weekday + day-of-month (UTC)', () => {
     // 2026-06-23 is a Tuesday
     expect(days[2]).toEqual({ date: '2026-06-23', label: 'Tue 23' })
+  })
+})
+
+describe('weekStartDate serialization is local-consistent', () => {
+  it('does not depend on the time-of-day component (same local day → same week start)', () => {
+    // A late-evening and an early-morning instant on the SAME local calendar day
+    // must yield the same week_start. (Before the fix, UTC serialization could differ.)
+    const morning = new Date(2026, 5, 22, 1, 0, 0)   // local Jun 22 2026, 01:00
+    const evening = new Date(2026, 5, 22, 23, 0, 0)  // local Jun 22 2026, 23:00
+    expect(weekStartDate(morning)).toBe(weekStartDate(evening))
+  })
+  it('weekStartDate(now) agrees with weekStartDate(midnight of today) — the Pool vs Days invariant', () => {
+    const now = new Date()
+    const midnightOfToday = new Date(todayDate() + 'T00:00:00')
+    expect(weekStartDate(now)).toBe(weekStartDate(midnightOfToday))
   })
 })

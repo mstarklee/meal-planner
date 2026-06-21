@@ -44,22 +44,29 @@ export interface DailyPick {
   recipe: Recipe
 }
 
+function localDateString(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export function weekStartDate(d: Date = new Date()): string {
   const copy = new Date(d)
   const day = copy.getDay()
   const diff = day === 0 ? -6 : 1 - day
   copy.setDate(copy.getDate() + diff)
-  return copy.toISOString().slice(0, 10)
+  return localDateString(copy)
 }
 
 export function todayDate(): string {
-  return new Date().toISOString().slice(0, 10)
+  return localDateString(new Date())
 }
 
 export function tomorrowDate(): string {
   const d = new Date()
   d.setDate(d.getDate() + 1)
-  return d.toISOString().slice(0, 10)
+  return localDateString(d)
 }
 
 export function formatDisplayDate(dateStr: string): string {
@@ -94,7 +101,7 @@ function dayStripLabel(dateStr: string): string {
 
 // 14 consecutive days starting today (this + next week). index 0 = Today, 1 = Tomorrow.
 export function planDays(today: Date = new Date()): { date: string; label: string }[] {
-  const start = today.toISOString().slice(0, 10)
+  const start = localDateString(today)
   return Array.from({ length: 14 }, (_, i) => {
     const date = addDays(start, i)
     const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : dayStripLabel(date)
