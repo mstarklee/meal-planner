@@ -6,6 +6,7 @@ import { getFullPool, getPicksForDate } from '../lib/mealPlans'
 import type { PantryItem, ShoppingRow } from '../lib/pantry'
 import { buildShoppingRows } from '../lib/pantry'
 import { getPantryItems, getShoppingChecks, toggleShoppingCheck } from '../lib/pantryData'
+import { getStaples } from '../lib/staples'
 import ShoppingList from '../components/ShoppingList'
 
 type ShopMode = 'week' | 'tomorrow'
@@ -25,9 +26,10 @@ export default function Shop() {
     setLoading(true)
     setError(null)
     try {
-      const [pantryItems, checks, recipes] = await Promise.all([
+      const [pantryItems, checks, staples, recipes] = await Promise.all([
         getPantryItems(householdId),
         getShoppingChecks(householdId, week),
+        getStaples(householdId),
         mode === 'week'
           ? getFullPool(householdId, week).then((entries: PoolEntry[]) =>
               entries.map((e) => e.recipe))
@@ -36,7 +38,7 @@ export default function Shop() {
       ])
       const checkSet = new Set(checks.map((c) => c.item))
       const uniqueRecipes = dedupeRecipes(recipes)
-      setRows(buildShoppingRows(uniqueRecipes, pantryItems as PantryItem[], checkSet))
+      setRows(buildShoppingRows(uniqueRecipes, pantryItems as PantryItem[], checkSet, staples.map((s) => s.name)))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
     } finally {
