@@ -2,5 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
-body { @apply bg-[#f6f8f4] text-[#1c1c1e] antialiased; }
+:root {
+  color-scheme: light;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply text-ink antialiased font-sans;
+    background-color: #f4f0e8;
+    /* faint paper grain — almost imperceptible, just enough to kill flatness */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    font-feature-settings: 'ss01', 'cv01';
+  }
+
+  /* Fraunces with high optical contrast for headings */
+  h1, h2, h3 {
+    @apply font-display;
+    font-optical-sizing: auto;
+  }
+
+  /* tabular figures for any numeric data */
+  .nums { font-variant-numeric: tabular-nums; }
+
+  ::selection { background: rgba(184, 81, 46, 0.18); }
+
+  *:focus-visible {
+    outline: 2px solid rgba(184, 81, 46, 0.55);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  /* generous editorial screen padding */
+  .screen {
+    @apply px-5 pb-10;
+  }
+
+  /* small-caps letterspaced section label */
+  .eyebrow {
+    @apply text-[11px] font-bold uppercase tracking-eyebrow text-ink-faint;
+  }
+
+  /* hairline divider */
+  .rule {
+    @apply border-t border-ink/10;
+  }
+
+  /* editorial primary action — solid terracotta, restrained radius */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-terracotta text-bone-surface
+           font-semibold px-5 py-2.5 transition-colors duration-200 hover:bg-terracotta-dark;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 text-ink
+           font-semibold px-4 py-2 transition-colors duration-200 hover:bg-ink/5;
+  }
+
+  /* editorial segmented control — text + animated underline handled per-component */
+  .segmented {
+    @apply flex gap-6 border-b border-ink/10;
+  }
+  .segmented-tab {
+    @apply relative -mb-px pb-3 text-[15px] font-semibold text-ink-faint transition-colors duration-200;
+  }
+  .segmented-tab[aria-selected='true'],
+  .segmented-tab[data-active='true'] {
+    @apply text-ink;
+  }
+
+  /* typographic image fallback tile */
+  .monogram {
+    @apply flex items-center justify-center font-display font-light text-ink/25 select-none;
+  }
+}
+
+@layer utilities {
+  .pt-safe { padding-top: var(--sat); }
+  .pb-safe { padding-bottom: var(--sab); }
+  /* scrim for text over imagery */
+  .scrim-b {
+    background: linear-gradient(to top, rgba(26,23,21,0.62) 0%, rgba(26,23,21,0.12) 45%, transparent 75%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

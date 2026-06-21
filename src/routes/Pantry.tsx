@@ -3,6 +3,10 @@ import { useHousehold } from '../context/HouseholdProvider'
 import type { PantryItem } from '../lib/pantry'
 import { getPantryItems, addPantryItem } from '../lib/pantryData'
 import PantryList from '../components/PantryList'
+import ScreenHeader from '../components/ScreenHeader'
+import TopBar from '../components/TopBar'
+import SegmentedTabs from '../components/SegmentedTabs'
+import Icon from '../components/Icon'
 
 type PantryFilter = 'all' | 'low'
 
@@ -50,52 +54,49 @@ export default function Pantry() {
   }
 
   return (
-    <div className="px-4 pt-6 pb-32">
-      <h1 className="text-2xl font-bold text-brand">Pantry</h1>
+    <>
+      <TopBar />
+      <div className="screen pb-32">
+      <ScreenHeader eyebrow="In the Kitchen" title="Pantry" />
 
-      {/* Filter toggle */}
-      <div className="flex mt-4 bg-brand-soft rounded-xl p-1">
-        {([
+      <SegmentedTabs
+        ariaLabel="Pantry filter"
+        value={filter}
+        onChange={setFilter}
+        options={[
           ['all', 'All'],
           ['low', 'Running low'],
-        ] as const).map(([value, label]) => (
-          <button key={value} type="button"
-            onClick={() => setFilter(value)}
-            className={`flex-1 text-sm font-semibold rounded-lg py-2 ${
-              filter === value ? 'bg-brand text-white' : 'text-gray-500'
-            }`}>
-            {label}
-          </button>
-        ))}
-      </div>
+        ] as const}
+      />
 
-      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+      {error && <p className="text-terracotta-dark text-sm mt-2">{error}</p>}
 
       <div className="mt-4">
         {loading ? (
-          <p className="text-gray-500 text-center">Loading...</p>
+          <p className="text-ink-soft text-center">Loading…</p>
         ) : (
           <PantryList items={filtered} onRefresh={load} />
         )}
       </div>
 
-      {/* Add item bar */}
-      <div className="fixed bottom-20 inset-x-0 px-4 pb-3">
+      {/* Add item bar — floats just above the tab bar */}
+      <div className="fixed inset-x-0 px-4" style={{ bottom: 'calc(4.75rem + var(--sab))' }}>
         <form onSubmit={(e) => { e.preventDefault(); void handleAdd() }}
-          className="flex gap-2 bg-white rounded-xl shadow-lg border border-gray-200 p-2">
+          className="flex gap-2 bg-bone-surface/95 backdrop-blur-xl rounded-2xl shadow-lift border border-ink/10 p-2">
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Add pantry item..."
-            className="flex-1 text-sm px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-brand"
+            placeholder="Add pantry item…"
+            className="flex-1 text-[15px] px-3 py-2 rounded-xl border border-ink/10 bg-bone/60 placeholder:text-ink-faint focus:outline-none focus:border-terracotta"
           />
           <button type="submit" disabled={!newName.trim() || adding}
-            className="bg-brand text-white font-bold text-sm px-4 py-2 rounded-lg disabled:opacity-50">
-            Add
+            className="btn-primary text-[13px] disabled:opacity-40">
+            <Icon name="plus" size={15} /> Add
           </button>
         </form>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

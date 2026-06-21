@@ -8,6 +8,9 @@ import { buildShoppingRows } from '../lib/pantry'
 import { getPantryItems, getShoppingChecks, toggleShoppingCheck } from '../lib/pantryData'
 import { getStaples } from '../lib/staples'
 import ShoppingList from '../components/ShoppingList'
+import ScreenHeader from '../components/ScreenHeader'
+import TopBar from '../components/TopBar'
+import SegmentedTabs from '../components/SegmentedTabs'
 
 type ShopMode = 'week' | 'tomorrow'
 
@@ -62,42 +65,41 @@ export default function Shop() {
   const totalCount = rows.filter((r) => !r.inPantry).length
 
   return (
-    <div className="px-4 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-brand">Shop</h1>
-        {totalCount > 0 && (
-          <p className="text-sm text-gray-500">
-            <span className="font-bold text-gray-700">{toBuyCount}</span> of {totalCount} remaining
-          </p>
-        )}
-      </div>
+    <>
+      <TopBar
+        actions={
+          totalCount > 0 ? (
+            <p className="text-sm text-ink-soft nums">
+              <span className="font-display text-[19px] text-ink">{toBuyCount}</span>
+              <span className="text-ink-faint"> / {totalCount} left</span>
+            </p>
+          ) : undefined
+        }
+      />
+      <div className="screen">
+        <ScreenHeader eyebrow="Market List" title="Shop" />
 
-      {/* Mode toggle */}
-      <div className="flex mt-4 bg-brand-soft rounded-xl p-1">
-        {([
-          ['week', 'This Week'],
-          ['tomorrow', 'Just Tomorrow'],
-        ] as const).map(([value, label]) => (
-          <button key={value} type="button"
-            onClick={() => setMode(value)}
-            className={`flex-1 text-sm font-semibold rounded-lg py-2 ${
-              mode === value ? 'bg-brand text-white' : 'text-gray-500'
-            }`}>
-            {label}
-          </button>
-        ))}
-      </div>
+        <SegmentedTabs
+          ariaLabel="Shop range"
+          value={mode}
+          onChange={setMode}
+          options={[
+            ['week', 'This Week'],
+            ['tomorrow', 'Just Tomorrow'],
+          ] as const}
+        />
 
-      {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+        {error && <p className="text-terracotta-dark text-sm mt-2">{error}</p>}
 
-      <div className="mt-4">
-        {loading ? (
-          <p className="text-gray-500 text-center">Loading...</p>
-        ) : (
-          <ShoppingList rows={rows} onToggle={handleToggle} />
-        )}
+        <div className="mt-4">
+          {loading ? (
+            <p className="text-ink-soft text-center">Loading…</p>
+          ) : (
+            <ShoppingList rows={rows} onToggle={handleToggle} />
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }
 

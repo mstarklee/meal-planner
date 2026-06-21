@@ -38,24 +38,24 @@ describe('RecipeDetail', () => {
 
   it('shows Edit and Delete to the creator', async () => {
     renderDetail()
-    expect(await screen.findByText('Dal Tadka')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Edit' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument()
+    expect((await screen.findAllByText('Dal Tadka'))[0]).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /edit/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument()
   })
 
   it('hides Edit and Delete from non-creators', async () => {
     mockUserId = 'someone-else'
     renderDetail()
-    expect(await screen.findByText('Dal Tadka')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Edit' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    expect((await screen.findAllByText('Dal Tadka'))[0]).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /edit/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument()
   })
 
   it('does not delete when the confirm dialog is cancelled', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
     renderDetail()
-    await screen.findByText('Dal Tadka')
-    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findAllByText('Dal Tadka')
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }))
     expect(deleteRecipe).not.toHaveBeenCalled()
     expect(mockNavigate).not.toHaveBeenCalled()
     confirmSpy.mockRestore()
@@ -65,8 +65,8 @@ describe('RecipeDetail', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     vi.mocked(deleteRecipe).mockResolvedValue()
     renderDetail()
-    await screen.findByText('Dal Tadka')
-    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await screen.findAllByText('Dal Tadka')
+    await userEvent.click(screen.getByRole('button', { name: /delete/i }))
     expect(deleteRecipe).toHaveBeenCalledWith('r1')
     await vi.waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/recipes'))
     confirmSpy.mockRestore()

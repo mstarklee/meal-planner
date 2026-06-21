@@ -7,6 +7,7 @@ import { createRecipe, getRecipe, updateRecipe, uploadRecipePhoto } from '../lib
 import { useHousehold } from '../context/HouseholdProvider'
 import TagPicker from '../components/TagPicker'
 import DynamicList from '../components/DynamicList'
+import TopBar from '../components/TopBar'
 import { getStaples, addStaple } from '../lib/staples'
 import { isStapleItem } from '../lib/pantry'
 
@@ -175,12 +176,19 @@ export default function RecipeForm() {
   }
 
   if (loading) {
-    return <div className="min-h-screen px-6 py-8 max-w-md mx-auto">Loading…</div>
+    return (
+      <>
+        <TopBar variant="back" title="Edit recipe" />
+        <div className="screen max-w-md mx-auto pt-10 text-ink-soft">Loading…</div>
+      </>
+    )
   }
 
   return (
-    <div className="min-h-screen px-6 py-8 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold text-brand mb-6">{id ? 'Edit recipe' : 'New recipe'}</h1>
+    <>
+      <TopBar variant="back" title={id ? 'Edit recipe' : 'New recipe'} />
+      <div className="screen max-w-md mx-auto pt-4">
+      <h1 className="font-display text-title font-semibold text-ink mb-6">{id ? 'Edit recipe' : 'New recipe'}</h1>
       <form onSubmit={submit} className="space-y-4">
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Photo</label>
@@ -280,6 +288,7 @@ export default function RecipeForm() {
           {busy ? 'Saving…' : photoUploading ? 'Uploading photo…' : 'Save recipe'}
         </button>
       </form>
-    </div>
+      </div>
+    </>
   )
 }

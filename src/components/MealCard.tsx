@@ -1,5 +1,8 @@
 import { useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
 import type { Recipe } from '../lib/recipe'
+import Icon from './Icon'
+import { ease } from './motion'
 
 interface MealCardProps {
   recipe: Recipe
@@ -9,86 +12,91 @@ interface MealCardProps {
 
 function nutritionLine(recipe: Recipe): string | null {
   const parts: string[] = []
-  if (recipe.calories !== null) parts.push(`${recipe.calories}cal`)
+  if (recipe.calories !== null) parts.push(`${recipe.calories} cal`)
   if (recipe.protein !== null) parts.push(`${recipe.protein}g protein`)
   if (recipe.fiber !== null) parts.push(`${recipe.fiber}g fiber`)
-  return parts.length > 0 ? parts.join(' · ') : null
+  return parts.length > 0 ? parts.join('  ·  ') : null
 }
 
 export default function MealCard({ recipe, label, isKid }: MealCardProps) {
   const [open, setOpen] = useState(false)
   const nutrition = nutritionLine(recipe)
+  const initial = recipe.name.trim().charAt(0).toUpperCase() || '·'
+  const labelColor = isKid ? 'text-olive' : 'text-terracotta'
 
   return (
-    <div className={`rounded-xl border overflow-hidden bg-white shadow-sm ${
-      isKid ? 'border-kid/40' : 'border-gray-200'
-    }`}>
-      <button type="button" onClick={() => setOpen(!open)} className="w-full text-left">
-        <div className="flex gap-3 p-3">
-          {recipe.photo_url ? (
-            <img src={recipe.photo_url} alt="" className="w-16 h-16 rounded-lg object-cover shrink-0" />
-          ) : (
-            <div className="w-16 h-16 rounded-lg bg-brand-soft flex items-center justify-center text-2xl shrink-0">
-              🍽️
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className={`text-[10px] font-bold uppercase ${isKid ? 'text-kid' : 'text-gray-400'}`}>{label}</p>
-            <h3 className="font-bold text-gray-900 truncate">{recipe.name}</h3>
-            {nutrition && <p className="text-xs text-gray-500 mt-0.5">{nutrition}</p>}
-            {recipe.tags.length > 0 && (
-              <div className="flex gap-1 flex-wrap mt-1">
-                {recipe.tags.map((tag) => (
-                  <span key={tag}
-                    className={`text-[9px] px-1.5 py-0.5 rounded-full font-semibold ${
-                      tag === 'cheat'
-                        ? 'bg-orange-100 text-cheat'
-                        : 'bg-brand-mint text-brand-dark'
-                    }`}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
+    <motion.div layout className="overflow-hidden rounded-2xl bg-bone-surface shadow-soft">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full text-left"
+      >
+        <div className="flex items-center gap-4 p-3.5">
+          <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-bone-deep">
+            {recipe.photo_url ? (
+              <img src={recipe.photo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <span className="monogram absolute inset-0 text-3xl">{initial}</span>
             )}
           </div>
-          <span className="self-center text-gray-300 text-sm">{open ? '▲' : '▼'}</span>
+          <div className="flex-1 min-w-0">
+            <p className={`eyebrow ${labelColor}`}>{label}</p>
+            <h3 className="mt-1 font-display text-[18px] leading-tight font-medium text-ink truncate">{recipe.name}</h3>
+            {nutrition && <p className="mt-1 text-[12px] text-ink-faint nums">{nutrition}</p>}
+          </div>
+          <motion.span animate={{ rotate: open ? 90 : 0 }} transition={{ duration: 0.3, ease }} className="text-ink-faint">
+            <Icon name="chevron" size={18} />
+          </motion.span>
         </div>
       </button>
 
-      {open && (
-        <div className="px-3 pb-3 border-t border-gray-100 pt-3 space-y-3">
-          {recipe.ingredients.length > 0 && (
-            <div>
-              <h4 className="text-[10px] font-bold text-gray-400 uppercase">Ingredients</h4>
-              <ul className="mt-1 space-y-0.5">
-                {recipe.ingredients.map((ing, i) => (
-                  <li key={i} className="text-sm text-gray-900">
-                    {ing.amount ? `${ing.amount} ${ing.item}` : ing.item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.4, ease }}
+            className="overflow-hidden"
+          >
+            <div className="px-3.5 pb-4 pt-1 space-y-4">
+              {recipe.ingredients.length > 0 && (
+                <div className="pt-3 rule">
+                  <h4 className="eyebrow mb-2">Ingredients</h4>
+                  <ul className="space-y-1">
+                    {recipe.ingredients.map((ing, i) => (
+                      <li key={i} className="text-[14px] text-ink-soft">
+                        {ing.amount ? `${ing.amount} · ${ing.item}` : ing.item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-          {recipe.steps.length > 0 && (
-            <div>
-              <h4 className="text-[10px] font-bold text-gray-400 uppercase">Steps</h4>
-              <ol className="mt-1 space-y-1 list-decimal list-inside">
-                {recipe.steps.map((step, i) => (
-                  <li key={i} className="text-sm text-gray-900">{step}</li>
-                ))}
-              </ol>
-            </div>
-          )}
+              {recipe.steps.length > 0 && (
+                <div>
+                  <h4 className="eyebrow mb-2">Method</h4>
+                  <ol className="space-y-2.5">
+                    {recipe.steps.map((step, i) => (
+                      <li key={i} className="flex gap-3 text-[14px] text-ink-soft">
+                        <span className="font-display text-terracotta text-[15px] leading-tight">{i + 1}</span>
+                        <span>{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
 
-          {recipe.link_url && (
-            <a href={recipe.link_url} target="_blank" rel="noreferrer"
-              className="inline-block bg-brand text-white font-bold rounded-lg px-3 py-1.5 text-xs">
-              ▶ Watch video / open blog
-            </a>
-          )}
-        </div>
-      )}
-    </div>
+              {recipe.link_url && (
+                <a href={recipe.link_url} target="_blank" rel="noreferrer" className="btn-primary text-[13px]">
+                  Watch / open recipe
+                </a>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
