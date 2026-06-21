@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { defaultTargets } from '../lib/householdDefaults'
 import { updateReminderSettings, browserTimezone } from '../lib/settingsData'
 import { enablePush, getPushState, type PushState } from '../lib/push'
+import { getStaples, addStaple, removeStaple, type Staple } from '../lib/staples'
 
 // HH:MM:SS or HH:MM -> HH:MM for <input type="time">
 function toTimeInput(value: string | undefined): string {
@@ -28,7 +29,16 @@ export default function Settings() {
   const [pushBusy, setPushBusy] = useState(false)
   const [pushMsg, setPushMsg] = useState<string | null>(null)
 
+  const [staples, setStaples] = useState<Staple[]>([])
+  const [newStaple, setNewStaple] = useState('')
+  const [stapleError, setStapleError] = useState<string | null>(null)
+
   useEffect(() => { void getPushState().then(setPushState) }, [])
+
+  useEffect(() => {
+    if (!householdId) return
+    void getStaples(householdId).then(setStaples).catch(() => undefined)
+  }, [householdId])
 
   async function handleSave() {
     if (!householdId) return
@@ -56,6 +66,31 @@ export default function Settings() {
       setPushMsg(e instanceof Error ? e.message : 'Could not enable reminders')
     } finally {
       setPushBusy(false)
+    }
+  }
+
+  async function handleAddStaple() {
+    const name = newStaple.trim()
+    if (!householdId || !name) return
+    setStapleError(null)
+    if (staples.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
+      setStapleError('Already in your staples'); return
+    }
+    try {
+      const created = await addStaple(householdId, name)
+      setStaples([...staples, created].sort((a, b) => a.name.localeCompare(b.name)))
+      setNewStaple('')
+    } catch (e) {
+      setStapleError(e instanceof Error ? e.message : 'Could not add')
+    }
+  }
+
+  async function handleRemoveStaple(id: string) {
+    try {
+      await removeStaple(id)
+      setStaples(staples.filter((s) => s.id !== id))
+    } catch (e) {
+      setStapleError(e instanceof Error ? e.message : 'Could not remove')
     }
   }
 
@@ -114,6 +149,33 @@ export default function Settings() {
           className="w-full bg-brand text-white font-bold rounded-xl py-2.5 text-sm disabled:opacity-50">
           {saving ? 'Saving…' : 'Save'}
         </button>
+      </section>
+
+      {/* Pantry staples */}
+      <section className="space-y-2 pt-2 border-t border-gray-100">
+        <h2 className="text-xs font-bold text-gray-400 uppercase">Pantry staples</h2>
+        <p className="text-sm text-gray-500">
+          Always-available items. These never show up in your shopping list.
+        </p>
+        <div className="flex flex-wrap gap-1">
+          {staples.map((s) => (
+            <span key={s.id}
+              className="text-xs px-2 py-1 rounded-full bg-brand-soft text-gray-700 flex items-center gap-1">
+              {s.name}
+              <button type="button" aria-label={`Remove ${s.name}`}
+                onClick={() => handleRemoveStaple(s.id)} className="text-gray-400">✕</button>
+            </span>
+          ))}
+          {staples.length === 0 && <span className="text-sm text-gray-400">No staples yet.</span>}
+        </div>
+        <div className="flex gap-2">
+          <input value={newStaple} onChange={(e) => setNewStaple(e.target.value)}
+            aria-label="New staple" placeholder="e.g. salt"
+            className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm" />
+          <button type="button" onClick={handleAddStaple}
+            className="bg-brand text-white font-bold rounded-lg px-3 py-1 text-sm">Add</button>
+        </div>
+        {stapleError && <p className="text-red-600 text-sm">{stapleError}</p>}
       </section>
 
       {/* Account */}

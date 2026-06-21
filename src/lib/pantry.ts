@@ -43,16 +43,23 @@ export function pantryMatchesIngredient(pantryName: string, ingredientItem: stri
   return p.length > 0 && i.length > 0 && (i.includes(p) || p.includes(i))
 }
 
+export function isStapleItem(ingredientItem: string, stapleNames: string[]): boolean {
+  return stapleNames.some((name) => pantryMatchesIngredient(name, ingredientItem))
+}
+
 export function buildShoppingRows(
-  recipes: { id: string; name: string; ingredients: { amount: string; item: string }[] }[],
+  recipes: { id: string; name: string; ingredients: { amount: string; item: string; staple?: boolean }[] }[],
   pantryItems: PantryItem[],
   checks: Set<string>,
+  stapleNames: string[],
 ): ShoppingRow[] {
   const goodPantry = pantryItems.filter((p) => p.status === 'good')
   const rows: ShoppingRow[] = []
 
   for (const recipe of recipes) {
     for (const ing of recipe.ingredients) {
+      const isStaple = ing.staple === true || (ing.staple == null && isStapleItem(ing.item, stapleNames))
+      if (isStaple) { continue }
       const itemKey = ing.item.toLowerCase().trim()
       const inPantry = goodPantry.some((p) => pantryMatchesIngredient(p.name, ing.item))
       const checked = checks.has(itemKey)

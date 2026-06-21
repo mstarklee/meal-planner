@@ -33,4 +33,18 @@ describe('recipeSchema', () => {
   it('rejects a blank ingredient item', () => {
     expect(recipeSchema.safeParse({ ...valid, ingredients: [{ amount: '1', item: '' }] }).success).toBe(false)
   })
+  it('retains the staple flag on parse', () => {
+    const parsed = recipeSchema.parse({
+      ...valid,
+      ingredients: [{ amount: '1 tsp', item: 'salt', staple: true }],
+    })
+    expect(parsed.ingredients[0].staple).toBe(true)
+  })
+  it('accepts a legacy ingredient with no staple flag', () => {
+    const parsed = recipeSchema.parse({
+      ...valid,
+      ingredients: [{ amount: '1 tsp', item: 'salt' }],
+    })
+    expect(parsed.ingredients[0].staple).toBeUndefined()
+  })
 })
