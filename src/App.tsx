@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthProvider'
 import { HouseholdProvider } from './context/HouseholdProvider'
 import { RequireAuth, RequireHousehold } from './routes/guards'
 import AppShell from './components/AppShell'
+import UpdatePrompt from './components/UpdatePrompt'
 import Login from './routes/Login'
 import Onboarding from './routes/Onboarding'
 import Today from './routes/Today'
@@ -18,6 +19,7 @@ import Settings from './routes/Settings'
 export default function App() {
   return (
     <BrowserRouter>
+      <UpdatePrompt />
       <AuthProvider>
         <HouseholdProvider>
           <Routes>
