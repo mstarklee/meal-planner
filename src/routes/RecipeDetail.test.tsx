@@ -21,7 +21,8 @@ import type { Recipe } from '../lib/recipe'
 const recipe: Recipe = {
   id: 'r1', household_id: 'h1', created_by: 'u1', created_at: '2026-06-15T00:00:00Z',
   name: 'Dal Tadka', photo_url: '', link_url: '',
-  meal_types: ['dinner'], tags: [], calories: null, protein: null, fiber: null,
+  meal_types: ['dinner'], tags: [],
+  nutrients: { calories: 420, protein: 22, fiber: 9 },
   nutrition_estimated: false, ingredients: [], steps: [], is_shared: false,
 }
 
