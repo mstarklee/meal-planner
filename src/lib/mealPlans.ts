@@ -94,7 +94,7 @@ export async function clearPick(
 export async function getHouseholdSettings(householdId: string): Promise<HouseholdSettings> {
   const { data, error } = await supabase
     .from('household_settings')
-    .select('target_calories, target_protein, target_fiber, evening_reminder_time, morning_reminder_time')
+    .select('adults, targets_adult, targets_kid, evening_reminder_time, morning_reminder_time, timezone')
     .eq('household_id', householdId)
     .single()
   if (error) throw error

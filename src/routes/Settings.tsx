@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useHousehold } from '../context/HouseholdProvider'
 import { supabase } from '../lib/supabase'
 import { defaultTargets } from '../lib/householdDefaults'
-import { updateReminderSettings, browserTimezone } from '../lib/settingsData'
+import { NUTRIENTS, GROUP_LABELS, NUTRIENT_GROUPS } from '../lib/nutrients'
+import { updateReminderSettings, browserTimezone, updateNutritionSettings } from '../lib/settingsData'
 import { enablePush, getPushState, type PushState } from '../lib/push'
 import { getStaples, addStaple, removeStaple, type Staple } from '../lib/staples'
 import TopBar from '../components/TopBar'
@@ -23,6 +24,13 @@ export default function Settings() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [adults, setAdults] = useState(base.adults)
+  const [tAdult, setTAdult] = useState<Record<string, number>>(base.targets_adult)
+  const [tKid, setTKid] = useState<Record<string, number>>(base.targets_kid)
+  const [tab, setTab] = useState<'adult' | 'kid'>('adult')
+  const [nutSaving, setNutSaving] = useState(false)
+  const [nutSaved, setNutSaved] = useState(false)
 
   const [pushState, setPushState] = useState<PushState>('default')
   const [pushBusy, setPushBusy] = useState(false)
@@ -52,6 +60,20 @@ export default function Settings() {
       setError(e instanceof Error ? e.message : 'Failed to save')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleSaveNutrition() {
+    if (!householdId) return
+    setNutSaving(true); setNutSaved(false)
+    try {
+      await updateNutritionSettings(householdId, { adults, targets_adult: tAdult, targets_kid: tKid })
+      await refresh()
+      setNutSaved(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to save')
+    } finally {
+      setNutSaving(false)
     }
   }
 
@@ -145,6 +167,50 @@ export default function Settings() {
         <button type="button" onClick={handleSave} disabled={saving}
           className="w-full bg-brand text-white font-bold rounded-xl py-2.5 text-sm disabled:opacity-50">
           {saving ? 'Saving…' : 'Save'}
+        </button>
+      </section>
+
+      {/* Household & nutrition targets */}
+      <section className="space-y-3 pt-2 border-t border-gray-100">
+        <h2 className="text-xs font-bold text-gray-400 uppercase">Household &amp; nutrition targets</h2>
+        <label className="flex items-center justify-between">
+          <span className="text-sm text-gray-700">Adults</span>
+          <input type="number" min={1} value={adults}
+            onChange={(e) => setAdults(Math.max(1, Number(e.target.value) || 1))}
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-20" />
+        </label>
+
+        <div className="flex gap-1">
+          {(['adult', 'kid'] as const).map((t) => (
+            <button key={t} type="button" onClick={() => setTab(t)}
+              className={`text-xs font-semibold rounded-full px-3 py-1 ${tab === t ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500'}`}>
+              {t === 'adult' ? 'Adult needs' : 'Kid needs'}
+            </button>
+          ))}
+        </div>
+
+        {NUTRIENT_GROUPS.map((group) => (
+          <div key={group}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mt-2">{GROUP_LABELS[group]}</p>
+            <div className="grid grid-cols-3 gap-2 mt-1">
+              {NUTRIENTS.filter((n) => n.group === group).map((n) => {
+                const map = tab === 'adult' ? tAdult : tKid
+                const set = tab === 'adult' ? setTAdult : setTKid
+                return (
+                  <label key={n.key} className="text-xs text-gray-500">{n.label} {n.unit && `(${n.unit})`}
+                    <input type="number" className="w-full border rounded-xl p-2 mt-1" aria-label={`${tab} ${n.label}`}
+                      value={map[n.key] ?? ''}
+                      onChange={(e) => set({ ...map, [n.key]: Number(e.target.value) || 0 })} />
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+        ))}
+        {nutSaved && <p className="text-brand text-sm font-semibold">Saved ✓</p>}
+        <button type="button" onClick={handleSaveNutrition} disabled={nutSaving}
+          className="w-full bg-brand text-white font-bold rounded-xl py-2.5 text-sm disabled:opacity-50">
+          {nutSaving ? 'Saving…' : 'Save targets'}
         </button>
       </section>
 

@@ -13,6 +13,7 @@ export default function Onboarding() {
   const [householdName, setHouseholdName] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [kids, setKids] = useState<{ id: string; name: string }[]>([])
+  const [adults, setAdults] = useState(2)
   const [targets, setTargets] = useState(() => defaultTargets())
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -27,7 +28,12 @@ export default function Onboarding() {
     e.preventDefault()
     setError(null)
     const parsed = onboardingSchema.safeParse({
-      householdName, displayName, kids: kids.map((k) => ({ name: k.name })), ...targets,
+      householdName,
+      displayName,
+      kids: kids.map((k) => ({ name: k.name })),
+      adults,
+      evening_reminder_time: targets.evening_reminder_time,
+      morning_reminder_time: targets.morning_reminder_time,
     })
     if (!parsed.success) { setError(parsed.error.issues[0].message); return }
     if (!session) { setError('Not signed in'); return }
@@ -37,9 +43,7 @@ export default function Onboarding() {
       p_name: householdName,
       p_display_name: displayName,
       p_kids: kids.map((k) => k.name),
-      p_calories: targets.target_calories,
-      p_protein: targets.target_protein,
-      p_fiber: targets.target_fiber,
+      p_adults: adults,
       p_evening: targets.evening_reminder_time,
       p_morning: targets.morning_reminder_time,
     })
@@ -81,19 +85,12 @@ export default function Onboarding() {
             className="mt-2 text-brand font-semibold text-sm">+ Add a kid</button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <label className="text-xs text-gray-500">Calories
-            <input type="number" className="w-full border rounded-xl p-2 mt-1" value={targets.target_calories}
-              onChange={(e) => setTargets({ ...targets, target_calories: Number(e.target.value) })} />
-          </label>
-          <label className="text-xs text-gray-500">Protein g
-            <input type="number" className="w-full border rounded-xl p-2 mt-1" value={targets.target_protein}
-              onChange={(e) => setTargets({ ...targets, target_protein: Number(e.target.value) })} />
-          </label>
-          <label className="text-xs text-gray-500">Fiber g
-            <input type="number" className="w-full border rounded-xl p-2 mt-1" value={targets.target_fiber}
-              onChange={(e) => setTargets({ ...targets, target_fiber: Number(e.target.value) })} />
-          </label>
+        <div>
+          <label className="text-xs font-bold text-gray-500 uppercase">Adults in the household</label>
+          <input type="number" min={1} className="w-full border rounded-xl p-3 mt-1"
+            aria-label="Adults" value={adults}
+            onChange={(e) => setAdults(Math.max(1, Number(e.target.value) || 1))} />
+          <p className="text-xs text-gray-400 mt-1">Nutrition targets can be fine-tuned later in Settings.</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
