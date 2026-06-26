@@ -4,7 +4,9 @@ import { useHousehold } from '../context/HouseholdProvider'
 import { todayDate, formatDisplayDate, greeting } from '../lib/mealPlan'
 import type { DailyPick, PickSlot } from '../lib/mealPlan'
 import { getPicksForDate } from '../lib/mealPlans'
-import { defaultTargets } from '../lib/householdDefaults'
+import { HEADLINE_NUTRIENTS } from '../lib/nutrients'
+import { toNutrientMap } from '../lib/recipe'
+import { sumNutrients, buildNutrientRows } from '../lib/nutrition'
 import NutritionStrip from '../components/NutritionStrip'
 import MealCard from '../components/MealCard'
 import ScreenHeader from '../components/ScreenHeader'
@@ -24,7 +26,7 @@ const KID_SLOTS: { slot: PickSlot; label: string }[] = [
 ]
 
 export default function Today() {
-  const { householdId, kids, settings, displayName } = useHousehold()
+  const { householdId, kids, displayName, targetsAdult, targetsKid } = useHousehold()
   const [picks, setPicks] = useState<DailyPick[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,16 +52,15 @@ export default function Today() {
   }, [householdId, today])
 
   const pickBySlot = new Map(picks.map((p) => [p.slot, p]))
-  const targets = settings ?? defaultTargets()
 
-  const totals = picks.reduce(
-    (acc, p) => ({
-      calories: acc.calories + (p.recipe.calories ?? 0),
-      protein: acc.protein + (p.recipe.protein ?? 0),
-      fiber: acc.fiber + (p.recipe.fiber ?? 0),
-    }),
-    { calories: 0, protein: 0, fiber: 0 },
-  )
+  const familySlots = new Set<PickSlot>(['breakfast', 'lunch', 'dinner'])
+  const kidSlots = new Set<PickSlot>(['kid-lunch', 'kid-snack'])
+
+  const familyTotals = sumNutrients(picks.filter((p) => familySlots.has(p.slot)).map((p) => toNutrientMap(p.recipe.nutrients)))
+  const kidTotals = sumNutrients(picks.filter((p) => kidSlots.has(p.slot)).map((p) => toNutrientMap(p.recipe.nutrients)))
+
+  const youRows = buildNutrientRows(familyTotals, targetsAdult, HEADLINE_NUTRIENTS)
+  const kidRows = buildNutrientRows(kidTotals, targetsKid, HEADLINE_NUTRIENTS)
 
   const hasKids = kids.length > 0
   const hasPicks = picks.length > 0
@@ -96,11 +97,9 @@ export default function Today() {
         </div>
       ) : (
         <Stagger className="space-y-7 pt-1">
-          <StaggerItem>
-            <NutritionStrip
-              totals={totals}
-              targets={{ calories: targets.target_calories, protein: targets.target_protein, fiber: targets.target_fiber }}
-            />
+          <StaggerItem className="space-y-1.5">
+            <p className="eyebrow text-ink-faint">Your day · per person</p>
+            <NutritionStrip rows={youRows} />
           </StaggerItem>
 
           {/* Family meals */}
@@ -126,6 +125,12 @@ export default function Today() {
           {hasKids && (pickBySlot.has('kid-lunch') || pickBySlot.has('kid-snack')) && (
             <StaggerItem className="space-y-3">
               <h2 className="eyebrow mb-1 text-olive">Kid&apos;s School Box</h2>
+              {(pickBySlot.has('kid-lunch') || pickBySlot.has('kid-snack')) && (
+                <>
+                  <p className="eyebrow text-olive">Kid&apos;s day · per person</p>
+                  <NutritionStrip rows={kidRows} />
+                </>
+              )}
               {KID_SLOTS.map(({ slot, label }) => {
                 const pick = pickBySlot.get(slot)
                 if (!pick) return null
