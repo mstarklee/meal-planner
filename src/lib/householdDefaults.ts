@@ -1,7 +1,9 @@
+import { seedTargets } from './nutrients'
+
 export interface HouseholdSettings {
-  target_calories: number
-  target_protein: number
-  target_fiber: number
+  adults: number
+  targets_adult: Record<string, number>
+  targets_kid: Record<string, number>
   evening_reminder_time: string
   morning_reminder_time: string
   timezone: string
@@ -9,9 +11,9 @@ export interface HouseholdSettings {
 
 export function defaultTargets(): HouseholdSettings {
   return {
-    target_calories: 2000,
-    target_protein: 90,
-    target_fiber: 30,
+    adults: 2,
+    targets_adult: seedTargets('adult'),
+    targets_kid: seedTargets('kid'),
     evening_reminder_time: '20:00',
     morning_reminder_time: '07:00',
     timezone: 'UTC',

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthProvider'
-import type { HouseholdSettings } from '../lib/householdDefaults'
+import { defaultTargets, type HouseholdSettings } from '../lib/householdDefaults'
 
 interface Kid { id: string; name: string }
 interface HouseholdState {
@@ -10,11 +10,19 @@ interface HouseholdState {
   settings: HouseholdSettings | null
   displayName: string | null
   loading: boolean
+  adults: number
+  familyCount: number
+  kidCount: number
+  targetsAdult: Record<string, number>
+  targetsKid: Record<string, number>
   refresh: () => Promise<void>
 }
 
 const HouseholdContext = createContext<HouseholdState>({
-  householdId: null, kids: [], settings: null, displayName: null, loading: true, refresh: async () => {},
+  householdId: null, kids: [], settings: null, displayName: null, loading: true,
+  adults: 2, familyCount: 2, kidCount: 0,
+  targetsAdult: defaultTargets().targets_adult, targetsKid: defaultTargets().targets_kid,
+  refresh: async () => {},
 })
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
@@ -50,8 +58,14 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { void refresh() }, [refresh])
 
+  const adults = settings?.adults ?? 2
+  const kidCount = kids.length
+  const familyCount = adults + kidCount
+  const targetsAdult = settings?.targets_adult ?? defaultTargets().targets_adult
+  const targetsKid = settings?.targets_kid ?? defaultTargets().targets_kid
+
   return (
-    <HouseholdContext.Provider value={{ householdId, kids, settings, displayName, loading, refresh }}>
+    <HouseholdContext.Provider value={{ householdId, kids, settings, displayName, loading, adults, familyCount, kidCount, targetsAdult, targetsKid, refresh }}>
       {children}
     </HouseholdContext.Provider>
   )
