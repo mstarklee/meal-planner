@@ -9,7 +9,7 @@ import { fetchBlogText } from './extract'
 
 const MODEL_OUT = {
   name: 'Tomato Soup', meal_types: ['lunch'], tags: ['veg'],
-  calories: 180, protein: 5, fiber: 4, nutrition_estimated: true,
+  nutrients: { calories: 180, protein: 5, fiber: 4 }, nutrition_estimated: true,
   ingredients: [{ amount: '2', item: 'tomatoes' }], steps: ['Blend', 'Heat'],
 }
 
@@ -22,6 +22,7 @@ describe('handleImport', () => {
     expect(draft.name).toBe('Tomato Soup')
     expect(draft.link_url).toBe('')
     expect(draft.ingredients).toEqual([{ amount: '2', item: 'tomatoes' }])
+    expect(draft.nutrients.calories).toBe(180)
   })
 
   it('fetches blog text and stamps the source url as link_url', async () => {
