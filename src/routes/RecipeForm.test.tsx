@@ -32,7 +32,7 @@ const existingRecipe: Recipe = {
   id: 'r1', household_id: 'h1', created_by: 'u1', created_at: '2026-06-15T00:00:00Z',
   name: 'Existing Dish', photo_url: '', link_url: '',
   meal_types: ['dinner'], tags: ['healthy'],
-  calories: 400, protein: 30, fiber: 8, nutrition_estimated: false,
+  nutrients: { calories: 400, protein: 30, fiber: 8 }, nutrition_estimated: false,
   ingredients: [{ amount: '2', item: 'eggs' }], steps: ['Cook it'], is_shared: false,
 }
 
@@ -118,7 +118,7 @@ describe('RecipeForm', () => {
       state: {
         draft: {
           name: 'Imported Bowl', photo_url: '', link_url: 'https://x.test',
-          meal_types: ['lunch'], tags: ['veg'], calories: 420, protein: 22, fiber: 7,
+          meal_types: ['lunch'], tags: ['veg'], nutrients: { calories: 420, protein: 22, fiber: 7 },
           nutrition_estimated: true, ingredients: [{ amount: '1 cup', item: 'rice' }], steps: ['Cook'], is_shared: false,
         },
       },
