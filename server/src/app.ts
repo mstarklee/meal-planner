@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { handleImport } from './importHandler'
+import { handleDraftRecipe } from './draftHandler'
 import { verifySupabaseToken } from './auth'
 import { ImportError } from './errors'
 import { handleSuggestActivity } from './suggestActivity'
@@ -38,6 +39,24 @@ app.post('/import-recipe', async (c) => {
   } catch (err) {
     if (err instanceof ImportError) return c.json({ error: err.message }, err.status as ContentfulStatusCode)
     return c.json({ error: 'Import failed' }, 500)
+  }
+})
+
+app.post('/draft-recipe', async (c) => {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) return c.json({ error: 'Server is missing OPENAI_API_KEY' }, 500)
+
+  const authz = c.req.header('authorization') ?? ''
+  const token = authz.startsWith('Bearer ') ? authz.slice(7) : ''
+  const userId = await verifySupabaseToken(token)
+  if (!userId) return c.json({ error: 'Unauthorized' }, 401)
+
+  try {
+    const body = await c.req.json().catch(() => null)
+    return c.json(await handleDraftRecipe(body, apiKey))
+  } catch (err) {
+    if (err instanceof ImportError) return c.json({ error: err.message }, err.status as ContentfulStatusCode)
+    return c.json({ error: 'Draft failed' }, 500)
   }
 })
 
