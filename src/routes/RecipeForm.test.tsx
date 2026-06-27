@@ -12,6 +12,7 @@ vi.mock('../lib/staples', () => ({
   getStaples: vi.fn().mockResolvedValue([]),
   addStaple: vi.fn().mockResolvedValue(undefined),
 }))
+vi.mock('../lib/draftRecipe', () => ({ draftRecipe: vi.fn() }))
 vi.mock('../context/HouseholdProvider', () => ({ useHousehold: () => ({ householdId: 'h1' }) }))
 let mockParams: { id?: string } = {}
 let mockLocation: { state: unknown } = { state: null }
@@ -22,6 +23,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 
 import RecipeForm from './RecipeForm'
 import { createRecipe, getRecipe, updateRecipe } from '../lib/recipes'
+import { draftRecipe } from '../lib/draftRecipe'
 import type { Recipe } from '../lib/recipe'
 
 function renderForm() {
@@ -111,6 +113,33 @@ describe('RecipeForm', () => {
     expect(calledId).toBe('r1')
     expect(input.name).toBe('Existing Dish Updated')
     expect(createRecipe).not.toHaveBeenCalled()
+  })
+
+  it('disables Generate draft until an ingredient has an item', async () => {
+    renderForm()
+    const btn = screen.getByRole('button', { name: /generate draft/i })
+    expect(btn).toBeDisabled()
+    await userEvent.click(screen.getByText('+ Add ingredient'))
+    await userEvent.type(screen.getByLabelText('Ingredient 1 item'), 'rice')
+    expect(btn).toBeEnabled()
+  })
+
+  it('merges AI nutrition/steps/tags from Generate draft but keeps the ingredients', async () => {
+    vi.mocked(draftRecipe).mockResolvedValue({
+      name: 'ignored', meal_types: ['dinner'], tags: ['veg'],
+      nutrients: { calories: 510, protein: 33 }, nutrition_estimated: true,
+      ingredients: [{ amount: '999', item: 'invented' }], steps: ['Boil', 'Serve'], link_url: '',
+    })
+    renderForm()
+    await userEvent.click(screen.getByText('+ Add ingredient'))
+    await userEvent.type(screen.getByLabelText('Ingredient 1 item'), 'rice')
+    await userEvent.click(screen.getByRole('button', { name: /generate draft/i }))
+
+    expect(await screen.findByLabelText('Calories')).toHaveValue(510)
+    expect(screen.getByLabelText('Protein')).toHaveValue(33)
+    // Ingredient row is preserved, not replaced by the model's output.
+    expect(screen.getByLabelText('Ingredient 1 item')).toHaveValue('rice')
+    expect(draftRecipe).toHaveBeenCalledTimes(1)
   })
 
   it('prefills fields from an import draft passed via router state', () => {

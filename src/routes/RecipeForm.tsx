@@ -4,6 +4,7 @@ import { MEAL_TYPES, RECIPE_TAGS, recipeSchema, toNutrientMap } from '../lib/rec
 import type { MealType, Recipe, RecipeInput } from '../lib/recipe'
 import { NUTRIENTS, GROUP_LABELS, NUTRIENT_GROUPS, emptyNutrientMap, type NutrientMap } from '../lib/nutrients'
 import { normalizeRecipeInput } from '../lib/recipeNormalize'
+import { draftRecipe } from '../lib/draftRecipe'
 import { createRecipe, getRecipe, updateRecipe, uploadRecipePhoto } from '../lib/recipes'
 import { useHousehold } from '../context/HouseholdProvider'
 import TagPicker from '../components/TagPicker'
@@ -37,6 +38,7 @@ export default function RecipeForm() {
 
   const [loading, setLoading] = useState(Boolean(id))
   const [busy, setBusy] = useState(false)
+  const [drafting, setDrafting] = useState(false)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -119,6 +121,30 @@ export default function RecipeForm() {
   }
   function setNutrient(key: string, v: string) {
     setNutrients((prev) => ({ ...prev, [key]: numFromInput(v) }))
+  }
+
+  const canDraft = ingredients.some((row) => row.item.trim() !== '')
+
+  // Ask the AI to fill nutrition, steps, meal types and tags from the typed ingredients.
+  // The user's name and ingredient rows are kept as-is; only AI-derived fields are merged in.
+  async function onGenerateDraft() {
+    setError(null)
+    setDrafting(true)
+    try {
+      const draft = await draftRecipe({
+        name,
+        ingredients: ingredients.map((row) => ({ amount: row.amount, item: row.item, staple: row.staple })),
+      })
+      setNutrients(toNutrientMap(draft.nutrients))
+      setNutritionEstimated(draft.nutrition_estimated)
+      if (draft.steps.length > 0) { setSteps(draft.steps) }
+      if (draft.meal_types.length > 0) { setMealTypes(draft.meal_types) }
+      if (draft.tags.length > 0) { setTags(draft.tags) }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to generate a draft')
+    } finally {
+      setDrafting(false)
+    }
   }
 
   async function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -209,6 +235,11 @@ export default function RecipeForm() {
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Nutrition</label>
           <p className="text-xs text-gray-400 mt-0.5">Enter values for <b>one person</b> (one serving).</p>
+          <button type="button" onClick={onGenerateDraft} disabled={!canDraft || drafting || busy}
+            className="mt-2 inline-flex items-center gap-1 rounded-full bg-brand/10 text-brand font-semibold text-sm px-3 py-1.5 disabled:opacity-50">
+            {drafting ? 'Generating…' : '✨ Generate draft from ingredients'}
+          </button>
+          <p className="text-[11px] text-gray-400 mt-1">Fills nutrition, steps and tags from your ingredients. Review before saving.</p>
           {NUTRIENT_GROUPS.map((group) => (
             <div key={group} className="mt-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{GROUP_LABELS[group]}</p>
