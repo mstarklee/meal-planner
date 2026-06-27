@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import type { Recipe } from '../lib/recipe'
+import { toNutrientMap } from '../lib/recipe'
 import { springSoft } from './motion'
 
 function nutritionLine(recipe: Recipe): string | null {
+  const map = toNutrientMap(recipe.nutrients)
   const parts: string[] = []
-  if (recipe.calories !== null) { parts.push(`${recipe.calories} cal`) }
-  if (recipe.protein !== null) { parts.push(`${recipe.protein}g protein`) }
+  if (typeof map.calories === 'number') parts.push(`${Math.round(map.calories)} cal`)
+  if (typeof map.protein === 'number') parts.push(`${Math.round(map.protein)}g protein`)
   return parts.length > 0 ? parts.join('  ·  ') : null
 }
 

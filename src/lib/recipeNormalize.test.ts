@@ -7,7 +7,7 @@ describe('normalizeRecipeInput', () => {
       name: '  Dal  ',
       photo_url: '', link_url: '',
       meal_types: ['dinner'], tags: [],
-      calories: null, protein: null, fiber: null, nutrition_estimated: false,
+      nutrients: { calories: null, protein: null, fiber: null }, nutrition_estimated: false,
       ingredients: [{ amount: '1 cup', item: 'lentils' }, { amount: '', item: '' }, { amount: '2', item: '  ' }],
       steps: ['Boil', '', '   '],
       is_shared: false,
@@ -21,7 +21,7 @@ describe('normalizeRecipeInput', () => {
       name: 'Paneer',
       photo_url: '', link_url: '',
       meal_types: ['dinner'], tags: [],
-      calories: null, protein: null, fiber: null, nutrition_estimated: false,
+      nutrients: { calories: null, protein: null, fiber: null }, nutrition_estimated: false,
       ingredients: [
         { amount: '200g', item: 'paneer', staple: false },
         { amount: '1 tsp', item: 'salt', staple: true },

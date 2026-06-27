@@ -17,7 +17,7 @@ function makeRecipe(over: Partial<Recipe> & Pick<Recipe, 'id' | 'name'>): Recipe
   return {
     household_id: 'h1', created_by: 'u1', created_at: '2026-06-15T00:00:00Z',
     photo_url: '', link_url: '', meal_types: ['dinner'], tags: [],
-    calories: null, protein: null, fiber: null, nutrition_estimated: false,
+    nutrients: {}, nutrition_estimated: false,
     ingredients: [], steps: [], is_shared: false, ...over,
   }
 }
