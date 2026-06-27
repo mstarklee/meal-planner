@@ -7,7 +7,7 @@ const valid = {
   link_url: '',
   meal_types: ['lunch', 'dinner'],
   tags: ['high-protein'],
-  calories: 560, protein: 41, fiber: 11,
+  nutrients: { calories: 560, protein: 41, fiber: 11 },
   nutrition_estimated: false,
   ingredients: [{ amount: '200g', item: 'chicken breast' }],
   steps: ['Grill chicken', 'Toss with quinoa'],
@@ -25,7 +25,7 @@ describe('recipeSchema', () => {
     expect(recipeSchema.safeParse({ ...valid, meal_types: [] }).success).toBe(false)
   })
   it('allows null nutrition values', () => {
-    expect(recipeSchema.safeParse({ ...valid, calories: null, protein: null, fiber: null }).success).toBe(true)
+    expect(recipeSchema.safeParse({ ...valid, nutrients: { calories: null, protein: null, fiber: null } }).success).toBe(true)
   })
   it('rejects an invalid link url', () => {
     expect(recipeSchema.safeParse({ ...valid, link_url: 'not-a-url' }).success).toBe(false)

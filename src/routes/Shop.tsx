@@ -7,6 +7,7 @@ import type { PantryItem, ShoppingRow } from '../lib/pantry'
 import { buildShoppingRows } from '../lib/pantry'
 import { getPantryItems, getShoppingChecks, toggleShoppingCheck } from '../lib/pantryData'
 import { getStaples } from '../lib/staples'
+import { countForSlot } from '../lib/scale'
 import ShoppingList from '../components/ShoppingList'
 import ScreenHeader from '../components/ScreenHeader'
 import TopBar from '../components/TopBar'
@@ -15,7 +16,7 @@ import SegmentedTabs from '../components/SegmentedTabs'
 type ShopMode = 'week' | 'tomorrow'
 
 export default function Shop() {
-  const { householdId } = useHousehold()
+  const { householdId, familyCount, kidCount } = useHousehold()
   const [mode, setMode] = useState<ShopMode>('week')
   const [rows, setRows] = useState<ShoppingRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,19 +36,21 @@ export default function Shop() {
         getStaples(householdId),
         mode === 'week'
           ? getFullPool(householdId, week).then((entries: PoolEntry[]) =>
-              entries.map((e) => e.recipe))
+              entries.map((e) => ({ recipe: e.recipe, scale: countForSlot(e.slot, familyCount, kidCount) })))
           : getPicksForDate(householdId, tomorrow).then((picks: DailyPick[]) =>
-              picks.map((p) => p.recipe)),
+              picks.map((p) => ({ recipe: p.recipe, scale: countForSlot(p.slot, familyCount, kidCount) }))),
       ])
       const checkSet = new Set(checks.map((c) => c.item))
-      const uniqueRecipes = dedupeRecipes(recipes)
-      setRows(buildShoppingRows(uniqueRecipes, pantryItems as PantryItem[], checkSet, staples.map((s) => s.name)))
+      const occurrences = dedupeOccurrences(recipes)
+      setRows(buildShoppingRows(
+        occurrences.map((o) => ({ id: o.recipe.id, name: o.recipe.name, scale: o.scale, ingredients: o.recipe.ingredients })),
+        pantryItems as PantryItem[], checkSet, staples.map((s) => s.name)))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
-  }, [householdId, mode, week, tomorrow])
+  }, [householdId, mode, week, tomorrow, familyCount, kidCount])
 
   useEffect(() => { void load() }, [load])
 
@@ -78,6 +81,7 @@ export default function Shop() {
       />
       <div className="screen">
         <ScreenHeader eyebrow="Market List" title="Shop" />
+        <p className="text-[12px] text-ink-faint mt-1">Quantities for your family ({familyCount}{kidCount > 0 ? `, kid items ×${kidCount}` : ''}).</p>
 
         <SegmentedTabs
           ariaLabel="Shop range"
@@ -103,11 +107,13 @@ export default function Shop() {
   )
 }
 
-function dedupeRecipes(recipes: { id: string; name: string; ingredients: { amount: string; item: string }[] }[]) {
-  const seen = new Set<string>()
-  return recipes.filter((r) => {
-    if (seen.has(r.id)) return false
-    seen.add(r.id)
-    return true
-  })
+function dedupeOccurrences(
+  occ: { recipe: { id: string; name: string; ingredients: { amount: string; item: string; staple?: boolean }[] }; scale: number }[],
+) {
+  const byId = new Map<string, { recipe: typeof occ[number]['recipe']; scale: number }>()
+  for (const o of occ) {
+    const prev = byId.get(o.recipe.id)
+    if (!prev || o.scale > prev.scale) byId.set(o.recipe.id, o)
+  }
+  return [...byId.values()]
 }

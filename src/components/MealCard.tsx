@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import type { Recipe } from '../lib/recipe'
+import { toNutrientMap } from '../lib/recipe'
+import { HEADLINE_NUTRIENTS } from '../lib/nutrients'
 import Icon from './Icon'
 import { ease } from './motion'
 
@@ -11,10 +13,10 @@ interface MealCardProps {
 }
 
 function nutritionLine(recipe: Recipe): string | null {
-  const parts: string[] = []
-  if (recipe.calories !== null) parts.push(`${recipe.calories} cal`)
-  if (recipe.protein !== null) parts.push(`${recipe.protein}g protein`)
-  if (recipe.fiber !== null) parts.push(`${recipe.fiber}g fiber`)
+  const map = toNutrientMap(recipe.nutrients)
+  const parts = HEADLINE_NUTRIENTS
+    .filter((n) => typeof map[n.key] === 'number')
+    .map((n) => `${Math.round(map[n.key] as number)}${n.unit === 'kcal' ? ' cal' : `${n.unit} ${n.label.toLowerCase()}`}`)
   return parts.length > 0 ? parts.join('  ·  ') : null
 }
 

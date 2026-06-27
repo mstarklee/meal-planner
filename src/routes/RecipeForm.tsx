@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { MEAL_TYPES, RECIPE_TAGS, recipeSchema } from '../lib/recipe'
+import { MEAL_TYPES, RECIPE_TAGS, recipeSchema, toNutrientMap } from '../lib/recipe'
 import type { MealType, Recipe, RecipeInput } from '../lib/recipe'
+import { NUTRIENTS, GROUP_LABELS, NUTRIENT_GROUPS, emptyNutrientMap, type NutrientMap } from '../lib/nutrients'
 import { normalizeRecipeInput } from '../lib/recipeNormalize'
 import { createRecipe, getRecipe, updateRecipe, uploadRecipePhoto } from '../lib/recipes'
 import { useHousehold } from '../context/HouseholdProvider'
@@ -43,9 +44,8 @@ export default function RecipeForm() {
   const [photoUrl, setPhotoUrl] = useState(() => draft?.photo_url ?? '')
   const [mealTypes, setMealTypes] = useState<string[]>(() => draft?.meal_types ?? [])
   const [tags, setTags] = useState<string[]>(() => draft?.tags ?? [])
-  const [calories, setCalories] = useState<number | null>(() => draft?.calories ?? null)
-  const [protein, setProtein] = useState<number | null>(() => draft?.protein ?? null)
-  const [fiber, setFiber] = useState<number | null>(() => draft?.fiber ?? null)
+  const [nutrients, setNutrients] = useState<NutrientMap>(() =>
+    draft?.nutrients ? toNutrientMap(draft.nutrients) : emptyNutrientMap())
   const [nutritionEstimated, setNutritionEstimated] = useState(() => draft?.nutrition_estimated ?? false)
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     () => (draft?.ingredients ?? []).map((i) => ({
@@ -70,9 +70,7 @@ export default function RecipeForm() {
         setPhotoUrl(recipe.photo_url)
         setMealTypes(recipe.meal_types)
         setTags(recipe.tags)
-        setCalories(recipe.calories)
-        setProtein(recipe.protein)
-        setFiber(recipe.fiber)
+        setNutrients(toNutrientMap(recipe.nutrients))
         setNutritionEstimated(recipe.nutrition_estimated)
         setIngredients(recipe.ingredients.map((i) => ({
           id: crypto.randomUUID(), amount: i.amount, item: i.item,
@@ -119,6 +117,9 @@ export default function RecipeForm() {
   function removeIngredient(i: number) {
     setIngredients(ingredients.filter((_, idx) => idx !== i))
   }
+  function setNutrient(key: string, v: string) {
+    setNutrients((prev) => ({ ...prev, [key]: numFromInput(v) }))
+  }
 
   async function onPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -144,9 +145,7 @@ export default function RecipeForm() {
       link_url: linkUrl,
       meal_types: mealTypes as MealType[],
       tags,
-      calories,
-      protein,
-      fiber,
+      nutrients,
       nutrition_estimated: nutritionEstimated,
       ingredients: ingredients.map((row) => ({ amount: row.amount, item: row.item, staple: row.staple })),
       steps,
@@ -209,20 +208,21 @@ export default function RecipeForm() {
 
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Nutrition</label>
-          <div className="grid grid-cols-3 gap-2 mt-1">
-            <label className="text-xs text-gray-500">Calories
-              <input type="number" className="w-full border rounded-xl p-2 mt-1" aria-label="Calories"
-                value={calories ?? ''} onChange={(e) => setCalories(numFromInput(e.target.value))} />
-            </label>
-            <label className="text-xs text-gray-500">Protein g
-              <input type="number" className="w-full border rounded-xl p-2 mt-1" aria-label="Protein"
-                value={protein ?? ''} onChange={(e) => setProtein(numFromInput(e.target.value))} />
-            </label>
-            <label className="text-xs text-gray-500">Fiber g
-              <input type="number" className="w-full border rounded-xl p-2 mt-1" aria-label="Fiber"
-                value={fiber ?? ''} onChange={(e) => setFiber(numFromInput(e.target.value))} />
-            </label>
-          </div>
+          <p className="text-xs text-gray-400 mt-0.5">Enter values for <b>one person</b> (one serving).</p>
+          {NUTRIENT_GROUPS.map((group) => (
+            <div key={group} className="mt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{GROUP_LABELS[group]}</p>
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {NUTRIENTS.filter((n) => n.group === group).map((n) => (
+                  <label key={n.key} className="text-xs text-gray-500">{n.label} {n.unit && `(${n.unit})`}
+                    <input type="number" className="w-full border rounded-xl p-2 mt-1"
+                      aria-label={n.label}
+                      value={nutrients[n.key] ?? ''} onChange={(e) => setNutrient(n.key, e.target.value)} />
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
           <label className="flex items-center gap-2 mt-2 text-sm text-gray-500">
             <input type="checkbox" checked={nutritionEstimated}
               onChange={(e) => setNutritionEstimated(e.target.checked)} />

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { NUTRIENT_KEYS } from './nutrients'
 
 export const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'kid'] as const
 export type MealType = (typeof MEAL_TYPES)[number]
@@ -13,9 +14,7 @@ export const recipeSchema = z.object({
   link_url: optionalUrl,
   meal_types: z.array(z.enum(MEAL_TYPES)).min(1, 'Pick at least one meal type'),
   tags: z.array(z.string()),
-  calories: z.number().int().nonnegative().nullable(),
-  protein: z.number().int().nonnegative().nullable(),
-  fiber: z.number().int().nonnegative().nullable(),
+  nutrients: z.record(z.string(), z.number().nonnegative().nullable()),
   nutrition_estimated: z.boolean(),
   ingredients: z.array(z.object({
     amount: z.string(),
@@ -33,4 +32,15 @@ export interface Recipe extends RecipeInput {
   household_id: string
   created_by: string
   created_at: string
+}
+
+// Coerce a stored/loose value into a complete per-person map keyed by the registry.
+export function toNutrientMap(value: unknown): Record<string, number | null> {
+  const src = (value ?? {}) as Record<string, unknown>
+  const out: Record<string, number | null> = {}
+  for (const k of NUTRIENT_KEYS) {
+    const v = src[k]
+    out[k] = typeof v === 'number' ? v : null
+  }
+  return out
 }

@@ -1,43 +1,33 @@
 import { describe, it, expect } from 'vitest'
 import { onboardingSchema } from './onboardingSchema'
 
+const base = {
+  householdName: 'Star Family',
+  displayName: 'Mouni',
+  members: [{ name: 'Mouni', sex: 'female', age: 35, weight_kg: 60, activity_level: 'moderate' }],
+  evening_reminder_time: '20:00',
+  morning_reminder_time: '07:00',
+}
+
 describe('onboardingSchema', () => {
-  it('accepts a household with zero kids', () => {
-    const r = onboardingSchema.safeParse({
-      householdName: 'Star Family',
-      displayName: 'Mouni',
-      kids: [],
-      target_calories: 2000, target_protein: 90, target_fiber: 30,
-      evening_reminder_time: '20:00', morning_reminder_time: '07:00',
-    })
-    expect(r.success).toBe(true)
+  it('accepts a valid household with one member', () => {
+    expect(onboardingSchema.safeParse(base).success).toBe(true)
   })
-
-  it('accepts a dynamic list of named kids', () => {
-    const r = onboardingSchema.safeParse({
-      householdName: 'Star Family', displayName: 'Mouni',
-      kids: [{ name: 'Aanya' }, { name: 'Vihaan' }],
-      target_calories: 2000, target_protein: 90, target_fiber: 30,
-      evening_reminder_time: '20:00', morning_reminder_time: '07:00',
-    })
-    expect(r.success).toBe(true)
+  it('requires at least one member', () => {
+    const r = onboardingSchema.safeParse({ ...base, members: [] })
+    expect(r.success).toBe(false)
   })
-
-  it('rejects an empty household name', () => {
+  it('rejects an invalid activity level', () => {
     const r = onboardingSchema.safeParse({
-      householdName: '', displayName: 'Mouni', kids: [],
-      target_calories: 2000, target_protein: 90, target_fiber: 30,
-      evening_reminder_time: '20:00', morning_reminder_time: '07:00',
+      ...base,
+      members: [{ ...base.members[0], activity_level: 'bogus' }],
     })
     expect(r.success).toBe(false)
   })
-
-  it('rejects a kid with a blank name', () => {
+  it('rejects non-positive weight', () => {
     const r = onboardingSchema.safeParse({
-      householdName: 'Star Family', displayName: 'Mouni',
-      kids: [{ name: '' }],
-      target_calories: 2000, target_protein: 90, target_fiber: 30,
-      evening_reminder_time: '20:00', morning_reminder_time: '07:00',
+      ...base,
+      members: [{ ...base.members[0], weight_kg: 0 }],
     })
     expect(r.success).toBe(false)
   })

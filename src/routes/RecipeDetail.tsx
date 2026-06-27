@@ -2,23 +2,22 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { motion, useScroll, useTransform } from 'motion/react'
 import type { Recipe } from '../lib/recipe'
+import { toNutrientMap } from '../lib/recipe'
+import { scaleAmount } from '../lib/scale'
 import { deleteRecipe, getRecipe } from '../lib/recipes'
 import { useAuth } from '../context/AuthProvider'
+import { useHousehold } from '../context/HouseholdProvider'
 import TopBar from '../components/TopBar'
 import Icon from '../components/Icon'
-
-function nutritionLine(recipe: Recipe): string | null {
-  const parts: string[] = []
-  if (recipe.calories !== null) { parts.push(`${recipe.calories} cal`) }
-  if (recipe.protein !== null) { parts.push(`${recipe.protein}g protein`) }
-  if (recipe.fiber !== null) { parts.push(`${recipe.fiber}g fiber`) }
-  return parts.length > 0 ? parts.join('  ·  ') : null
-}
+import NutritionPanel from '../components/NutritionPanel'
+import { effectiveTargets } from '../lib/nutritionTargets'
+import type { TargetOption } from '../components/NutritionPanel'
 
 export default function RecipeDetail() {
   const nav = useNavigate()
   const { id } = useParams()
   const { session } = useAuth()
+  const { familyCount, members } = useHousehold()
   const { scrollY } = useScroll()
   const heroY = useTransform(scrollY, [0, 320], [0, 80])
   const heroScale = useTransform(scrollY, [-160, 0], [1.25, 1])
@@ -26,6 +25,7 @@ export default function RecipeDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [recipe, setRecipe] = useState<Recipe | null>(null)
+  const [serves, setServes] = useState(1)
 
   useEffect(() => {
     if (!id) { return }
@@ -76,9 +76,22 @@ export default function RecipeDetail() {
     )
   }
 
-  const nutrition = nutritionLine(recipe)
   const isCreator = recipe.created_by === session?.user.id
   const initial = recipe.name.trim().charAt(0).toUpperCase() || '·'
+
+  const sortedMembers = [...members].sort((a, b) => Number(b.age >= 18) - Number(a.age >= 18))
+  const targetOptions: TargetOption[] = sortedMembers.map((m) => {
+    const raw = effectiveTargets(m)
+    const targets: Record<string, number> = {}
+    for (const [k, v] of Object.entries(raw)) {
+      if (v !== null) targets[k] = v
+    }
+    return {
+      id: m.id,
+      label: m.name ?? (m.age < 18 ? 'Kid' : 'Adult'),
+      targets,
+    }
+  })
 
   return (
     <>
@@ -116,12 +129,6 @@ export default function RecipeDetail() {
           <h1 className="font-display text-[30px] leading-[1.05] font-semibold text-bone-surface drop-shadow-sm">
             {recipe.name}
           </h1>
-          {nutrition && (
-            <p className="mt-1.5 text-[13px] text-bone-surface/85 nums">
-              {nutrition}
-              {recipe.nutrition_estimated && <span className="opacity-70"> · ≈ estimated</span>}
-            </p>
-          )}
         </div>
       </div>
 
@@ -147,14 +154,31 @@ export default function RecipeDetail() {
 
         {recipe.ingredients.length > 0 && (
           <div className="pt-2 rule">
-            <h2 className="eyebrow mb-3 mt-4">Ingredients</h2>
+            <div className="flex items-center justify-between mb-3 mt-4">
+              <h2 className="eyebrow">Ingredients</h2>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] uppercase tracking-eyebrow text-ink-faint">Serves</span>
+                <button type="button" aria-label="Fewer servings" onClick={() => setServes((s) => Math.max(1, s - 1))}
+                  className="h-7 w-7 rounded-full border border-ink/15 text-ink-soft">−</button>
+                <span className="font-display text-[18px] text-ink nums w-5 text-center">{serves}</span>
+                <button type="button" aria-label="More servings" onClick={() => setServes((s) => Math.min(12, s + 1))}
+                  className="h-7 w-7 rounded-full border border-ink/15 text-ink-soft">+</button>
+              </div>
+            </div>
             <ul className="space-y-1.5">
-              {recipe.ingredients.map((ing, i) => (
-                <li key={i} className="text-[15px] text-ink-soft">
-                  {ing.amount ? `${ing.amount} · ${ing.item}` : ing.item}
-                </li>
-              ))}
+              {recipe.ingredients.map((ing, i) => {
+                const amount = scaleAmount(ing.amount, serves)
+                return (
+                  <li key={i} className="text-[15px] text-ink-soft">
+                    {amount ? `${amount} · ${ing.item}` : ing.item}
+                  </li>
+                )
+              })}
             </ul>
+            {familyCount > 1 && (
+              <button type="button" onClick={() => setServes(familyCount)}
+                className="mt-2 text-[12px] font-semibold text-terracotta">Scale to my family ({familyCount})</button>
+            )}
           </div>
         )}
 
@@ -171,6 +195,16 @@ export default function RecipeDetail() {
             </ol>
           </div>
         )}
+
+        <div className="pt-2 rule">
+          <div className="mt-4">
+            <NutritionPanel
+              values={toNutrientMap(recipe.nutrients)}
+              options={targetOptions}
+              estimated={recipe.nutrition_estimated}
+            />
+          </div>
+        </div>
 
         {isCreator && (
           <button type="button" onClick={onDelete}

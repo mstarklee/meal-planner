@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { MEAL_TYPES, RECIPE_TAGS } from './recipe'
+import { MEAL_TYPES, RECIPE_TAGS, toNutrientMap } from './recipe'
 import type { RecipeInput } from './recipe'
 
 // What the import backend returns. The model is constrained by the server's strict
@@ -8,9 +8,7 @@ export const recipeDraftSchema = z.object({
   name: z.string().default(''),
   meal_types: z.array(z.enum(MEAL_TYPES)).default([]),
   tags: z.array(z.enum(RECIPE_TAGS)).default([]),
-  calories: z.number().int().nonnegative().nullable().default(null),
-  protein: z.number().int().nonnegative().nullable().default(null),
-  fiber: z.number().int().nonnegative().nullable().default(null),
+  nutrients: z.record(z.string(), z.number().nonnegative().nullable()).default({}),
   nutrition_estimated: z.boolean().default(false),
   ingredients: z.array(z.object({
     amount: z.string().default(''),
@@ -30,9 +28,7 @@ export function draftToRecipeInput(draft: RecipeDraft): RecipeInput {
     link_url: draft.link_url,
     meal_types: draft.meal_types,
     tags: draft.tags,
-    calories: draft.calories,
-    protein: draft.protein,
-    fiber: draft.fiber,
+    nutrients: toNutrientMap(draft.nutrients),
     nutrition_estimated: draft.nutrition_estimated,
     ingredients: draft.ingredients.map((i) => ({ amount: i.amount, item: i.item, staple: i.staple })),
     steps: draft.steps,
