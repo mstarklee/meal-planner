@@ -7,6 +7,7 @@ import { updateReminderSettings, browserTimezone } from '../lib/settingsData'
 import { getMembers, addMember, updateMember, removeMember } from '../lib/memberData'
 import { computeTargets, isKid, type ActivityLevel, type Member, type Sex } from '../lib/nutritionTargets'
 import { enablePush, getPushState, type PushState } from '../lib/push'
+import { suggestActivity } from '../lib/activityAssist'
 import { getStaples, addStaple, removeStaple, type Staple } from '../lib/staples'
 import TopBar from '../components/TopBar'
 
@@ -259,6 +260,17 @@ export default function Settings() {
                     {ACTIVITY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                   <span className="text-[11px] text-gray-400">{ACTIVITY_OPTIONS.find((o) => o.value === m.activity)?.hint}</span>
+                  <button type="button" className="mt-1 text-[11px] font-semibold text-brand block"
+                    onClick={async () => {
+                      const freq = Number(window.prompt('How many days a week do you train? (0-7)') ?? '')
+                      const goalRaw = (window.prompt('Goal? type: maintain / build_muscle / lose_fat') ?? '').trim()
+                      const goal = (['maintain','build_muscle','lose_fat'].includes(goalRaw) ? goalRaw : 'maintain') as 'maintain' | 'build_muscle' | 'lose_fat'
+                      try {
+                        const { level } = await suggestActivity({ trainsPerWeek: Number.isFinite(freq) ? freq : 0, goal })
+                        patchMember(m.id, { activity: level })
+                        setMemberMsg('Suggested an activity level — review and Save.')
+                      } catch (e) { setMemberMsg(e instanceof Error ? e.message : 'Could not suggest') }
+                    }}>Not sure? Let AI help</button>
                 </label>
               )}
               {kid && <p className="text-[11px] text-gray-400">Under 18 — pediatric growth targets.</p>}
