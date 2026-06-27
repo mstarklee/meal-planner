@@ -4,9 +4,10 @@ import { useHousehold } from '../context/HouseholdProvider'
 import { todayDate, formatDisplayDate, greeting } from '../lib/mealPlan'
 import type { DailyPick, PickSlot } from '../lib/mealPlan'
 import { getPicksForDate } from '../lib/mealPlans'
-import { HEADLINE_NUTRIENTS } from '../lib/nutrients'
+import { HEADLINE_NUTRIENTS, NUTRIENT_KEYS } from '../lib/nutrients'
 import { toNutrientMap } from '../lib/recipe'
 import { sumNutrients, buildNutrientRows } from '../lib/nutrition'
+import { effectiveTargets } from '../lib/nutritionTargets'
 import NutritionStrip from '../components/NutritionStrip'
 import MealCard from '../components/MealCard'
 import ScreenHeader from '../components/ScreenHeader'
@@ -25,8 +26,15 @@ const KID_SLOTS: { slot: PickSlot; label: string }[] = [
   { slot: 'kid-snack', label: 'Snack' },
 ]
 
+// Scale a per-person nutrient map by how many people eat it.
+function scaleMap(map: Record<string, number>, count: number): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const k of NUTRIENT_KEYS) out[k] = (map[k] ?? 0) * count
+  return out
+}
+
 export default function Today() {
-  const { householdId, kids, displayName, targetsAdult, targetsKid } = useHousehold()
+  const { householdId, members, kids, displayName, familyTargets, kidTargets, familyCount, kidCount } = useHousehold()
   const [picks, setPicks] = useState<DailyPick[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,11 +64,15 @@ export default function Today() {
   const familySlots = new Set<PickSlot>(['breakfast', 'lunch', 'dinner'])
   const kidSlots = new Set<PickSlot>(['kid-lunch', 'kid-snack'])
 
-  const familyTotals = sumNutrients(picks.filter((p) => familySlots.has(p.slot)).map((p) => toNutrientMap(p.recipe.nutrients)))
-  const kidTotals = sumNutrients(picks.filter((p) => kidSlots.has(p.slot)).map((p) => toNutrientMap(p.recipe.nutrients)))
+  // Per-person intake from each meal, scaled to how many people eat it.
+  const familyPerPerson = sumNutrients(picks.filter((p) => familySlots.has(p.slot)).map((p) => toNutrientMap(p.recipe.nutrients)))
+  const kidPerPerson = sumNutrients(picks.filter((p) => kidSlots.has(p.slot)).map((p) => toNutrientMap(p.recipe.nutrients)))
 
-  const youRows = buildNutrientRows(familyTotals, targetsAdult, HEADLINE_NUTRIENTS)
-  const kidRows = buildNutrientRows(kidTotals, targetsKid, HEADLINE_NUTRIENTS)
+  const familyIntake = scaleMap(familyPerPerson as Record<string, number>, Math.max(1, familyCount))
+  const kidIntake = scaleMap(kidPerPerson as Record<string, number>, Math.max(1, kidCount))
+
+  const youRows = buildNutrientRows(familyIntake, familyTargets, HEADLINE_NUTRIENTS)
+  const kidRows = buildNutrientRows(kidIntake, kidTargets, HEADLINE_NUTRIENTS)
 
   const hasKids = kids.length > 0
   const hasPicks = picks.length > 0
@@ -98,8 +110,24 @@ export default function Today() {
       ) : (
         <Stagger className="space-y-7 pt-1">
           <StaggerItem className="space-y-1.5">
-            <p className="eyebrow text-ink-faint">Your day · per person</p>
+            <p className="eyebrow text-ink-faint">Your family&apos;s day · vs everyone&apos;s needs</p>
             <NutritionStrip rows={youRows} />
+            {members.length > 0 && (
+              <details className="pt-1">
+                <summary className="cursor-pointer text-[12px] font-semibold text-terracotta">Per-person needs</summary>
+                <div className="mt-2 space-y-2">
+                  {members.map((m) => {
+                    const t = effectiveTargets(m)
+                    return (
+                      <p key={m.id} className="text-[12px] text-ink-soft nums">
+                        <span className="font-semibold text-ink">{m.name ?? (m.age < 18 ? 'Kid' : 'Adult')}</span>
+                        {` · ${Math.round(t.calories as number)} cal · ${Math.round(t.protein as number)}g protein · ${Math.round(t.iron as number)}mg iron`}
+                      </p>
+                    )
+                  })}
+                </div>
+              </details>
+            )}
           </StaggerItem>
 
           {/* Family meals */}
