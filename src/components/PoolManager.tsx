@@ -4,10 +4,21 @@ import { useHousehold } from '../context/HouseholdProvider'
 import { POOL_SLOTS, POOL_SLOT_LABELS, weekStartDate, nextWeekStartDate } from '../lib/mealPlan'
 import type { PoolSlot, PoolEntry } from '../lib/mealPlan'
 import type { Recipe } from '../lib/recipe'
+import { toNutrientMap } from '../lib/recipe'
 import { getPool, addToPool, removeFromPool, listRecipesForSlot } from '../lib/mealPlans'
 import { springSoft } from './motion'
 
 const POOL_TARGET = 7
+
+// Compact "is this the right one?" line — the headline macros, per person.
+function macroLine(recipe: Recipe): string {
+  const m = toNutrientMap(recipe.nutrients)
+  const parts: string[] = []
+  if (typeof m.calories === 'number') parts.push(`${Math.round(m.calories)} cal`)
+  if (typeof m.protein === 'number') parts.push(`${Math.round(m.protein)}g protein`)
+  if (typeof m.fiber === 'number') parts.push(`${Math.round(m.fiber)}g fiber`)
+  return parts.join('  ·  ')
+}
 
 export default function PoolManager() {
   const { householdId, kids } = useHousehold()
@@ -132,39 +143,53 @@ export default function PoolManager() {
           No recipes match this slot yet. Add some in the Recipes tab.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-5">
+        <ul className="space-y-2.5">
           {recipes.map((recipe) => {
             const inPool = poolRecipeIds.has(recipe.id)
             const initial = recipe.name.trim().charAt(0).toUpperCase() || '·'
+            const macros = macroLine(recipe)
+            const tags = recipe.tags.filter((t) => t !== 'cheat').slice(0, 2)
             return (
-              <motion.button key={recipe.id} type="button" onClick={() => toggle(recipe)}
-                whileTap={{ scale: 0.97 }} transition={springSoft}
-                className="group block text-left" aria-pressed={inPool}>
-                <div className={`relative aspect-[4/3] overflow-hidden rounded-2xl bg-bone-deep shadow-soft transition-all duration-200 ${
-                  inPool ? 'ring-2 ring-terracotta ring-offset-2 ring-offset-bone' : 'ring-1 ring-ink/10'
-                }`}>
-                  {recipe.photo_url ? (
-                    <img src={recipe.photo_url} alt=""
-                      className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-editorial group-hover:scale-[1.04] ${inPool ? '' : 'opacity-95'}`} />
-                  ) : (
-                    <span className="monogram absolute inset-0 text-[3.75rem] leading-none">{initial}</span>
-                  )}
-                  {/* selection badge */}
-                  <span className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full backdrop-blur transition-colors ${
-                    inPool ? 'bg-terracotta text-bone-surface' : 'bg-bone/80 text-ink-faint'
+              <li key={recipe.id}>
+                <motion.button type="button" onClick={() => toggle(recipe)}
+                  whileTap={{ scale: 0.985 }} transition={springSoft} aria-pressed={inPool}
+                  className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left transition-colors ${
+                    inPool ? 'border-terracotta bg-terracotta-soft/50' : 'border-ink/10 bg-bone-surface/50 hover:bg-bone-surface'
                   }`}>
-                    {inPool ? (
-                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+                  {/* small thumbnail */}
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-bone-deep">
+                    {recipe.photo_url ? (
+                      <img src={recipe.photo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
-                      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                      <span className="monogram absolute inset-0 text-[1.75rem] leading-none">{initial}</span>
                     )}
+                  </div>
+                  {/* detail */}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-display text-[16px] leading-tight text-ink">{recipe.name}</p>
+                    {macros && <p className="mt-1 text-[12px] text-ink-soft nums">{macros}</p>}
+                    {(tags.length > 0 || recipe.tags.includes('cheat')) && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {recipe.tags.includes('cheat') && (
+                          <span className="rounded-full bg-terracotta px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-eyebrow text-bone-surface">cheat</span>
+                        )}
+                        {tags.map((t) => (
+                          <span key={t} className="rounded-full bg-olive-soft px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-eyebrow text-olive-dark">{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* selection */}
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors ${
+                    inPool ? 'bg-terracotta text-bone-surface' : 'border border-ink/20 text-transparent'
+                  }`}>
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
                   </span>
-                </div>
-                <p className="mt-2 font-display text-[15px] leading-snug text-ink">{recipe.name}</p>
-              </motion.button>
+                </motion.button>
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
     </div>
   )
