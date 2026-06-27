@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'motion/react'
 import { useHousehold } from '../context/HouseholdProvider'
 import {
   PICK_SLOTS, PICK_SLOT_LABELS, poolSlotFor, weekStartDate, planDays, todayDate,
 } from '../lib/mealPlan'
 import type { PickSlot, PoolEntry } from '../lib/mealPlan'
 import { getFullPool, getPicksForDate, setPick, clearPick } from '../lib/mealPlans'
+import { springSoft } from './motion'
 
 interface Props {
   initialDate?: string
@@ -74,60 +76,77 @@ export default function PlanDays({ initialDate }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Date strip */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4" role="tablist" aria-label="Day">
+      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1" role="tablist" aria-label="Day">
         {days.map((d) => {
           const selected = d.date === selectedDate
+          const parts = d.label.split(' ')
+          const top = parts.length > 1 ? parts[0] : d.label
+          const num = parts.length > 1 ? parts[1] : null
           return (
             <button key={d.date} type="button" role="tab" aria-selected={selected}
               onClick={() => setSelectedDate(d.date)}
-              className={`shrink-0 px-3 py-2 rounded-xl text-sm font-semibold whitespace-nowrap ${
-                selected ? 'bg-brand text-white' : 'bg-brand-soft text-gray-600'
+              className={`flex shrink-0 flex-col items-center justify-center rounded-2xl px-3.5 py-2 leading-none transition-colors ${
+                selected
+                  ? 'bg-terracotta text-bone-surface shadow-soft'
+                  : 'border border-ink/10 bg-bone-surface/60 text-ink-soft hover:bg-bone-surface'
               }`}>
-              {d.label}
+              <span className="text-[10px] font-bold uppercase tracking-eyebrow">{top}</span>
+              {num && <span className="mt-1 font-display text-[17px]">{num}</span>}
             </button>
           )
         })}
       </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       {loading ? (
-        <p className="text-gray-500 text-center">Loading...</p>
+        <p className="py-10 text-center font-display text-[15px] italic text-ink-faint">Loading your week…</p>
       ) : (
         slots.map((slot) => {
           const slotPool = poolForSlot(slot)
           const isKid = slot === 'kid-lunch' || slot === 'kid-snack'
           return (
             <div key={slot}>
-              <h3 className={`text-xs font-bold uppercase mb-2 ${isKid ? 'text-kid' : 'text-gray-500'}`}>
+              <h3 className={`eyebrow mb-3 ${isKid ? 'text-olive' : 'text-ink-faint'}`}>
                 {PICK_SLOT_LABELS[slot]}
               </h3>
               {slotPool.length === 0 ? (
-                <p className="text-sm text-gray-400">No recipes in this week's pool. Add some in the Pool tab.</p>
+                <p className="text-[13px] italic text-ink-faint">No recipes in this week’s pool — add some in the Pool tab.</p>
               ) : (
-                <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+                <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
                   {slotPool.map((entry) => {
                     const selected = picks[slot] === entry.recipe_id
+                    const accent = isKid ? 'olive' : 'terracotta'
+                    const initial = entry.recipe.name.trim().charAt(0).toUpperCase() || '·'
                     return (
-                      <button key={entry.id} type="button" onClick={() => handleTap(slot, entry.recipe_id)}
-                        className={`shrink-0 w-28 rounded-xl border-2 overflow-hidden text-left transition-colors ${
+                      <motion.button key={entry.id} type="button" onClick={() => handleTap(slot, entry.recipe_id)}
+                        whileTap={{ scale: 0.96 }} transition={springSoft}
+                        className="group w-28 shrink-0 text-left" aria-pressed={selected}>
+                        <div className={`relative aspect-square overflow-hidden rounded-2xl bg-bone-deep shadow-soft transition-all duration-200 ${
                           selected
-                            ? isKid ? 'border-kid bg-orange-50' : 'border-brand bg-brand-soft'
-                            : 'border-gray-200 bg-white'
+                            ? `ring-2 ring-offset-2 ring-offset-bone ${accent === 'olive' ? 'ring-olive' : 'ring-terracotta'}`
+                            : 'ring-1 ring-ink/10'
                         }`}>
-                        {entry.recipe.photo_url ? (
-                          <img src={entry.recipe.photo_url} alt="" className="w-full aspect-square object-cover" />
-                        ) : (
-                          <div className="w-full aspect-square bg-brand-soft flex items-center justify-center text-2xl">
-                            🍽️
-                          </div>
-                        )}
-                        <p className="p-1.5 text-xs font-semibold text-gray-900 leading-tight truncate">
+                          {entry.recipe.photo_url ? (
+                            <img src={entry.recipe.photo_url} alt=""
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-editorial group-hover:scale-[1.04]" />
+                          ) : (
+                            <span className="monogram absolute inset-0 text-[3rem] leading-none">{initial}</span>
+                          )}
+                          {selected && (
+                            <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-bone-surface ${
+                              accent === 'olive' ? 'bg-olive' : 'bg-terracotta'
+                            }`}>
+                              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1.5 truncate font-display text-[13px] leading-tight text-ink">
                           {entry.recipe.name}
                         </p>
-                      </button>
+                      </motion.button>
                     )
                   })}
                 </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { motion, useScroll, useTransform } from 'motion/react'
+import { AnimatePresence, motion, useScroll, useTransform } from 'motion/react'
 import type { Recipe } from '../lib/recipe'
 import { toNutrientMap } from '../lib/recipe'
 import { scaleAmount } from '../lib/scale'
@@ -10,8 +10,15 @@ import { useHousehold } from '../context/HouseholdProvider'
 import TopBar from '../components/TopBar'
 import Icon from '../components/Icon'
 import NutritionPanel from '../components/NutritionPanel'
+import NutritionStrip from '../components/NutritionStrip'
+import SegmentedTabs from '../components/SegmentedTabs'
+import { buildNutrientRows } from '../lib/nutrition'
+import { HEADLINE_NUTRIENTS } from '../lib/nutrients'
+import { ease } from '../components/motion'
 import { effectiveTargets } from '../lib/nutritionTargets'
 import type { TargetOption } from '../components/NutritionPanel'
+
+type DetailTab = 'ingredients' | 'method' | 'nutrition'
 
 export default function RecipeDetail() {
   const nav = useNavigate()
@@ -26,6 +33,8 @@ export default function RecipeDetail() {
   const [error, setError] = useState<string | null>(null)
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [serves, setServes] = useState(1)
+  const [tab, setTab] = useState<DetailTab>('ingredients')
+  const [memberId, setMemberId] = useState('')
 
   useEffect(() => {
     if (!id) { return }
@@ -93,6 +102,17 @@ export default function RecipeDetail() {
     }
   })
 
+  const values = toNutrientMap(recipe.nutrients)
+  const selectedOption = targetOptions.find((o) => o.id === memberId) ?? targetOptions[0]
+  const headlineRows = buildNutrientRows(values, selectedOption?.targets ?? {}, HEADLINE_NUTRIENTS)
+  const hasNutrition = headlineRows.some((r) => r.value > 0)
+
+  const TABS = [
+    ['ingredients', 'Ingredients'],
+    ['method', 'Method'],
+    ['nutrition', 'Nutrition'],
+  ] as const
+
   return (
     <>
       <TopBar
@@ -132,9 +152,9 @@ export default function RecipeDetail() {
         </div>
       </div>
 
-      <div className="screen space-y-7 pt-5">
-        {recipe.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+      <div className="screen space-y-6 pt-4">
+        {(recipe.tags.length > 0 || recipe.link_url) && (
+          <div className="flex flex-wrap items-center gap-2">
             {recipe.tags.map((tag) => (
               <span key={tag}
                 className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-eyebrow ${
@@ -143,74 +163,128 @@ export default function RecipeDetail() {
                 {tag}
               </span>
             ))}
-          </div>
-        )}
-
-        {recipe.link_url && (
-          <a href={recipe.link_url} target="_blank" rel="noreferrer" className="btn-primary text-[13px]">
-            Watch / open recipe
-          </a>
-        )}
-
-        {recipe.ingredients.length > 0 && (
-          <div className="pt-2 rule">
-            <div className="flex items-center justify-between mb-3 mt-4">
-              <h2 className="eyebrow">Ingredients</h2>
-              <div className="flex items-center gap-3">
-                <span className="text-[11px] uppercase tracking-eyebrow text-ink-faint">Serves</span>
-                <button type="button" aria-label="Fewer servings" onClick={() => setServes((s) => Math.max(1, s - 1))}
-                  className="h-7 w-7 rounded-full border border-ink/15 text-ink-soft">−</button>
-                <span className="font-display text-[18px] text-ink nums w-5 text-center">{serves}</span>
-                <button type="button" aria-label="More servings" onClick={() => setServes((s) => Math.min(12, s + 1))}
-                  className="h-7 w-7 rounded-full border border-ink/15 text-ink-soft">+</button>
-              </div>
-            </div>
-            <ul className="space-y-1.5">
-              {recipe.ingredients.map((ing, i) => {
-                const amount = scaleAmount(ing.amount, serves)
-                return (
-                  <li key={i} className="text-[15px] text-ink-soft">
-                    {amount ? `${amount} · ${ing.item}` : ing.item}
-                  </li>
-                )
-              })}
-            </ul>
-            {familyCount > 1 && (
-              <button type="button" onClick={() => setServes(familyCount)}
-                className="mt-2 text-[12px] font-semibold text-terracotta">Scale to my family ({familyCount})</button>
+            {recipe.link_url && (
+              <a href={recipe.link_url} target="_blank" rel="noreferrer"
+                className="ml-auto inline-flex items-center gap-1.5 text-[12px] font-semibold text-terracotta transition-colors hover:text-terracotta-dark">
+                Watch / open
+                <span className="-rotate-45"><Icon name="chevron" size={14} strokeWidth={2} /></span>
+              </a>
             )}
           </div>
         )}
 
-        {recipe.steps.length > 0 && (
-          <div className="pt-2 rule">
-            <h2 className="eyebrow mb-3 mt-4">Method</h2>
-            <ol className="space-y-3.5">
-              {recipe.steps.map((step, i) => (
-                <li key={i} className="flex gap-3.5 text-[15px] leading-relaxed text-ink-soft">
-                  <span className="font-display text-[17px] leading-none text-terracotta">{i + 1}</span>
-                  <span>{step}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
+        {/* Per-person snapshot — visible without scrolling */}
+        {hasNutrition && (
+          <section className="rounded-2xl border border-ink/10 bg-bone-surface/50 p-4 shadow-soft">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="eyebrow">Per person{recipe.nutrition_estimated ? ' · estimated' : ''}</h2>
+              {targetOptions.length > 1 && (
+                <div className="flex flex-wrap justify-end gap-1">
+                  {targetOptions.map((o) => (
+                    <button key={o.id} type="button" onClick={() => setMemberId(o.id)}
+                      className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                        selectedOption?.id === o.id ? 'bg-terracotta text-bone-surface' : 'bg-ink/5 text-ink-soft hover:bg-ink/10'
+                      }`}>
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <NutritionStrip rows={headlineRows} />
+            <button type="button" onClick={() => setTab('nutrition')}
+              className="mt-1 inline-flex items-center gap-1 text-[12px] font-semibold text-terracotta transition-colors hover:text-terracotta-dark">
+              Full breakdown · 17 nutrients
+              <span className="rotate-90"><Icon name="chevron" size={13} strokeWidth={2} /></span>
+            </button>
+          </section>
         )}
 
-        <div className="pt-2 rule">
-          <div className="mt-4">
-            <NutritionPanel
-              values={toNutrientMap(recipe.nutrients)}
-              options={targetOptions}
-              estimated={recipe.nutrition_estimated}
-            />
-          </div>
-        </div>
+        {/* Tabbed content keeps the page short — each section is one tap away */}
+        <SegmentedTabs<DetailTab>
+          options={TABS}
+          value={tab}
+          onChange={setTab}
+          ariaLabel="Recipe sections"
+        />
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.28, ease }}
+          >
+            {tab === 'ingredients' && (
+              recipe.ingredients.length > 0 ? (
+                <div>
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="text-[11px] uppercase tracking-eyebrow text-ink-faint">Serves</span>
+                    <div className="flex items-center gap-3">
+                      <button type="button" aria-label="Fewer servings" onClick={() => setServes((s) => Math.max(1, s - 1))}
+                        className="h-8 w-8 rounded-full border border-ink/15 text-ink-soft transition-colors hover:bg-ink/5">−</button>
+                      <span className="w-5 text-center font-display text-[19px] text-ink nums">{serves}</span>
+                      <button type="button" aria-label="More servings" onClick={() => setServes((s) => Math.min(12, s + 1))}
+                        className="h-8 w-8 rounded-full border border-ink/15 text-ink-soft transition-colors hover:bg-ink/5">+</button>
+                    </div>
+                  </div>
+                  <ul className="divide-y divide-ink/[0.07]">
+                    {recipe.ingredients.map((ing, i) => {
+                      const amount = scaleAmount(ing.amount, serves)
+                      return (
+                        <li key={i} className="flex items-baseline gap-3 py-2.5 text-[15px]">
+                          {amount && <span className="shrink-0 font-display text-[15px] text-terracotta nums">{amount}</span>}
+                          <span className="text-ink-soft">{ing.item}</span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                  {familyCount > 1 && (
+                    <button type="button" onClick={() => setServes(familyCount)}
+                      className="mt-3 text-[12px] font-semibold text-terracotta transition-colors hover:text-terracotta-dark">
+                      Scale to my family ({familyCount})
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <p className="py-6 text-center font-display text-[15px] italic text-ink-faint">No ingredients listed.</p>
+              )
+            )}
+
+            {tab === 'method' && (
+              recipe.steps.length > 0 ? (
+                <ol className="space-y-4">
+                  {recipe.steps.map((step, i) => (
+                    <li key={i} className="flex gap-4 text-[15px] leading-relaxed text-ink-soft">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-terracotta-soft font-display text-[15px] text-terracotta-dark nums">{i + 1}</span>
+                      <span className="pt-0.5">{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="py-6 text-center font-display text-[15px] italic text-ink-faint">No method steps yet.</p>
+              )
+            )}
+
+            {tab === 'nutrition' && (
+              <NutritionPanel
+                values={values}
+                options={targetOptions}
+                estimated={recipe.nutrition_estimated}
+                {...(hasNutrition ? { selectedId: selectedOption?.id ?? '', onSelect: setMemberId } : {})}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
 
         {isCreator && (
-          <button type="button" onClick={onDelete}
-            className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
-            Delete recipe
-          </button>
+          <div className="pt-2 rule">
+            <button type="button" onClick={onDelete}
+              className="mt-4 text-sm font-semibold text-red-600 transition-colors hover:text-red-700">
+              Delete recipe
+            </button>
+          </div>
         )}
       </div>
     </>

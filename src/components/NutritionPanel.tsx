@@ -13,28 +13,35 @@ interface Props {
   values: NutrientMap // per person
   options: TargetOption[]
   estimated?: boolean
+  /** Controlled selection — when provided, the panel reflects this id and omits its own chips. */
+  selectedId?: string
+  onSelect?: (id: string) => void
 }
 
-export default function NutritionPanel({ values, options, estimated }: Props) {
-  const [selectedId, setSelectedId] = useState(options[0]?.id ?? '')
+export default function NutritionPanel({ values, options, estimated, selectedId: controlledId, onSelect }: Props) {
+  const [internalId, setInternalId] = useState(options[0]?.id ?? '')
+  const controlled = controlledId !== undefined
+  const selectedId = controlled ? controlledId : internalId
   const selected = options.find((o) => o.id === selectedId) ?? options[0]
   const targets = selected?.targets ?? {}
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="eyebrow">Nutrition · per person</h2>
-        {options.length > 0 && (
-          <div className="flex flex-wrap gap-1 justify-end">
-            {options.map((o) => (
-              <button key={o.id} type="button" onClick={() => setSelectedId(o.id)}
-                className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${selected?.id === o.id ? 'bg-terracotta text-bone-surface' : 'bg-ink/5 text-ink-soft'}`}>
-                {o.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {!controlled && (
+        <div className="flex items-center justify-between">
+          <h2 className="eyebrow">Nutrition · per person</h2>
+          {options.length > 0 && (
+            <div className="flex flex-wrap gap-1 justify-end">
+              {options.map((o) => (
+                <button key={o.id} type="button" onClick={() => (onSelect ? onSelect(o.id) : setInternalId(o.id))}
+                  className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${selected?.id === o.id ? 'bg-terracotta text-bone-surface' : 'bg-ink/5 text-ink-soft'}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {NUTRIENT_GROUPS.map((group) => {
         const rows = buildNutrientRows(values, targets, nutrientsByGroup(group))
