@@ -40,6 +40,12 @@ as $$
 declare
   v_household_id uuid;
   v_kid text;
+  v_staple text;
+  v_default_staples text[] := array[
+    'salt', 'sugar', 'oil', 'ghee', 'cumin', 'mustard seeds', 'turmeric',
+    'chili powder', 'coriander powder', 'garam masala', 'ginger-garlic paste',
+    'black pepper', 'water'
+  ];
 begin
   if auth.uid() is null then
     raise exception 'not authenticated';
@@ -65,6 +71,12 @@ begin
       end if;
     end loop;
   end if;
+
+  -- Seed the default staples set for new households (preserved from migration 0008).
+  foreach v_staple in array v_default_staples loop
+    insert into household_staples (household_id, name) values (v_household_id, v_staple)
+      on conflict do nothing;
+  end loop;
 
   return v_household_id;
 end;
