@@ -97,8 +97,9 @@ export default function Settings() {
     setMembers((ms) => ms.map((m) => {
       if (m.id !== id) return m
       const overrides = { ...m.overrides }
-      if (raw.trim() === '') delete overrides[key]
-      else overrides[key] = Number(raw)
+      const n = Number(raw)
+      if (raw.trim() === '' || !Number.isFinite(n)) delete overrides[key]
+      else overrides[key] = n
       return { ...m, overrides }
     }))
   }

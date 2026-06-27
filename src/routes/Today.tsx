@@ -64,7 +64,9 @@ export default function Today() {
   const familySlots = new Set<PickSlot>(['breakfast', 'lunch', 'dinner'])
   const kidSlots = new Set<PickSlot>(['kid-lunch', 'kid-snack'])
 
-  // Per-person intake from each meal, scaled to how many people eat it.
+  // Per-person intake from each meal, scaled to how many people eat it, then compared to the
+  // summed family/kid needs. Kids are intentionally in BOTH rollups: they eat the family meals
+  // (counted in familyCount/familyTargets) AND their own school box (the separate kid rollup).
   const familyPerPerson = sumNutrients(picks.filter((p) => familySlots.has(p.slot)).map((p) => toNutrientMap(p.recipe.nutrients)))
   const kidPerPerson = sumNutrients(picks.filter((p) => kidSlots.has(p.slot)).map((p) => toNutrientMap(p.recipe.nutrients)))
 
@@ -155,7 +157,7 @@ export default function Today() {
               <h2 className="eyebrow mb-1 text-olive">Kid&apos;s School Box</h2>
               {(pickBySlot.has('kid-lunch') || pickBySlot.has('kid-snack')) && (
                 <>
-                  <p className="eyebrow text-olive">Kid&apos;s day · per person</p>
+                  <p className="eyebrow text-olive">Kids&apos; school box · vs kids&apos; needs</p>
                   <NutritionStrip rows={kidRows} />
                 </>
               )}

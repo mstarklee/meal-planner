@@ -1,7 +1,6 @@
 import { supabase } from './supabase'
 import type { Recipe } from './recipe'
 import type { PoolSlot, PickSlot, PoolEntry, DailyPick } from './mealPlan'
-import type { HouseholdSettings } from './householdDefaults'
 
 export async function getPool(householdId: string, slot: PoolSlot, weekStart: string): Promise<PoolEntry[]> {
   const { data, error } = await supabase
@@ -89,14 +88,4 @@ export async function clearPick(
     .eq('slot', slot)
     .eq('pick_date', date)
   if (error) throw error
-}
-
-export async function getHouseholdSettings(householdId: string): Promise<HouseholdSettings> {
-  const { data, error } = await supabase
-    .from('household_settings')
-    .select('adults, targets_adult, targets_kid, evening_reminder_time, morning_reminder_time, timezone')
-    .eq('household_id', householdId)
-    .single()
-  if (error) throw error
-  return data as HouseholdSettings
 }
