@@ -38,16 +38,21 @@ const SYSTEM = [
   '- If the content is not a recipe, return name="" with empty ingredients and steps.',
 ].join('\n')
 
-// The manual "Generate draft" flow: the user has typed a single-person ingredient list and
-// wants nutrition, steps, and tags filled in. No external content states a serving count, so
-// the shared SERVING_RULE keeps everything per one person.
+// The manual "Generate draft" flow: the user has typed an ingredient list that is ALREADY
+// exactly one person's portion. Unlike the import flow, the model must NOT infer a serving
+// count from the quantities (e.g. "2 eggs" does not mean "serves 2") and must NOT scale.
+const DRAFT_SERVING_RULE = [
+  '- Servings: the listed ingredient quantities are for EXACTLY ONE person. Do NOT infer a serving count from them.',
+  '  Do NOT divide or multiply. Compute nutrition for exactly the quantities given by summing each ingredient\'s contribution.',
+].join('\n')
+
 const DRAFT_SYSTEM = [
   'You complete a single-person cooking recipe from the name and ingredient list the user typed, and return it as JSON matching the schema.',
   'Rules:',
   '- Keep the given ingredients; do not add or remove ingredients.',
   '- meal_types: pick all that apply from the allowed list; if unsure pick the single most likely.',
   '- tags: pick zero or more from the allowed list that genuinely fit.',
-  SERVING_RULE,
+  DRAFT_SERVING_RULE,
   NUTRITION_RULE,
   '- steps: write short imperative cooking instructions in order that use the given ingredients.',
 ].join('\n')

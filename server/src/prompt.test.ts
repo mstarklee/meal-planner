@@ -43,4 +43,14 @@ describe('buildDraftRequest', () => {
     expect(rf.type).toBe('json_schema')
     expect(rf.json_schema.strict).toBe(true)
   })
+  it('forbids inferring a serving count or scaling the typed quantities', () => {
+    const body = JSON.stringify(buildDraftRequest('gpt-4o', {
+      name: '', ingredients: [{ amount: '100 g', item: 'paneer' }, { amount: '2', item: 'egg' }],
+    }).messages)
+    expect(body).toContain('EXACTLY ONE person')
+    expect(body).toContain('Do NOT infer a serving count')
+    expect(body).toContain('Do NOT divide or multiply')
+    // The import-only detect-and-divide rule must NOT leak into the draft prompt.
+    expect(body).not.toContain('If you find one greater than 1, DIVIDE')
+  })
 })
