@@ -1,3 +1,5 @@
+import { scaleAmount } from './scale'
+
 export const PANTRY_STATUSES = ['good', 'low', 'out'] as const
 export type PantryStatus = (typeof PANTRY_STATUSES)[number]
 
@@ -48,7 +50,7 @@ export function isStapleItem(ingredientItem: string, stapleNames: string[]): boo
 }
 
 export function buildShoppingRows(
-  recipes: { id: string; name: string; ingredients: { amount: string; item: string; staple?: boolean }[] }[],
+  recipes: { id: string; name: string; scale: number; ingredients: { amount: string; item: string; staple?: boolean }[] }[],
   pantryItems: PantryItem[],
   checks: Set<string>,
   stapleNames: string[],
@@ -66,7 +68,7 @@ export function buildShoppingRows(
       rows.push({
         recipeId: recipe.id,
         recipeName: recipe.name,
-        amount: ing.amount,
+        amount: scaleAmount(ing.amount, recipe.scale),
         item: ing.item,
         itemKey,
         inPantry,

@@ -19,7 +19,7 @@ describe('isStapleItem', () => {
 
 describe('buildShoppingRows staple filtering', () => {
   const recipe = (ingredients: { amount: string; item: string; staple?: boolean }[]) =>
-    [{ id: 'r1', name: 'Dish', ingredients }]
+    [{ id: 'r1', name: 'Dish', scale: 1, ingredients }]
 
   it('hides ingredients explicitly flagged staple', () => {
     const rows = buildShoppingRows(
@@ -55,5 +55,14 @@ describe('buildShoppingRows staple filtering', () => {
     )
     expect(rows).toHaveLength(1)
     expect(rows[0].inPantry).toBe(true)
+  })
+
+  it('scales numeric amounts by the recipe scale factor', () => {
+    const rows = buildShoppingRows(
+      [{ id: 'r1', name: 'Dish', scale: 3, ingredients: [{ amount: '200 g', item: 'flour' }] }],
+      noPantry, noChecks, [],
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0].amount).toBe('600 g')
   })
 })
