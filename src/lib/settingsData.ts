@@ -21,17 +21,3 @@ export function browserTimezone(): string {
     return 'UTC'
   }
 }
-
-export interface NutritionSettingsInput {
-  adults: number
-  targets_adult: Record<string, number>
-  targets_kid: Record<string, number>
-}
-
-export async function updateNutritionSettings(householdId: string, input: NutritionSettingsInput): Promise<void> {
-  const { error } = await supabase
-    .from('household_settings')
-    .update(input)
-    .eq('household_id', householdId)
-  if (error) throw error
-}
