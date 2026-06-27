@@ -10,12 +10,14 @@ import { useHousehold } from '../context/HouseholdProvider'
 import TopBar from '../components/TopBar'
 import Icon from '../components/Icon'
 import NutritionPanel from '../components/NutritionPanel'
+import { effectiveTargets } from '../lib/nutritionTargets'
+import type { TargetOption } from '../components/NutritionPanel'
 
 export default function RecipeDetail() {
   const nav = useNavigate()
   const { id } = useParams()
   const { session } = useAuth()
-  const { familyCount, targetsAdult, targetsKid } = useHousehold()
+  const { familyCount, members } = useHousehold()
   const { scrollY } = useScroll()
   const heroY = useTransform(scrollY, [0, 320], [0, 80])
   const heroScale = useTransform(scrollY, [-160, 0], [1.25, 1])
@@ -76,6 +78,20 @@ export default function RecipeDetail() {
 
   const isCreator = recipe.created_by === session?.user.id
   const initial = recipe.name.trim().charAt(0).toUpperCase() || '·'
+
+  const sortedMembers = [...members].sort((a, b) => Number(b.age >= 18) - Number(a.age >= 18))
+  const targetOptions: TargetOption[] = sortedMembers.map((m) => {
+    const raw = effectiveTargets(m)
+    const targets: Record<string, number> = {}
+    for (const [k, v] of Object.entries(raw)) {
+      if (v !== null) targets[k] = v
+    }
+    return {
+      id: m.id,
+      label: m.name ?? (m.age < 18 ? 'Kid' : 'Adult'),
+      targets,
+    }
+  })
 
   return (
     <>
@@ -184,8 +200,7 @@ export default function RecipeDetail() {
           <div className="mt-4">
             <NutritionPanel
               values={toNutrientMap(recipe.nutrients)}
-              targetsAdult={targetsAdult}
-              targetsKid={targetsKid}
+              options={targetOptions}
               estimated={recipe.nutrition_estimated}
             />
           </div>
