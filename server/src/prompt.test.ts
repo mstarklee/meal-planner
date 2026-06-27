@@ -19,11 +19,21 @@ describe('buildExtractionRequest', () => {
     expect(JSON.stringify(req.messages)).toContain('data:image/jpeg;base64,AAA')
     expect(JSON.stringify(req.messages)).toContain('image_url')
   })
-  it('only scales when the content states a serving count', () => {
+  it('only scales on an explicit serving phrase, never from ingredient quantities', () => {
     const sys = JSON.stringify(buildExtractionRequest('gpt-4o', { kind: 'text', text: 'x' }).messages)
     expect(sys).toContain('serves')
-    expect(sys).toContain('If no serving count is stated')
+    expect(sys).toContain('EXPLICITLY states a serving count')
+    expect(sys).toContain('never infer the number of servings from them')
+    expect(sys).toContain('treat the recipe as ONE serving')
     expect(sys).toContain('Never guess a serving count')
+  })
+  it('requires exact stated nutrition or a per-ingredient computation, not a guess', () => {
+    const sys = JSON.stringify(buildExtractionRequest('gpt-4o', { kind: 'text', text: 'x' }).messages)
+    expect(sys).toContain('PREFER STATED VALUES')
+    expect(sys).toContain('EXACTLY as written')
+    expect(sys).toContain('COMPUTE PER INGREDIENT')
+    expect(sys).toContain('SUM those contributions across all ingredients')
+    expect(sys).toContain('never emit a single eyeballed guess')
   })
 })
 
@@ -52,5 +62,14 @@ describe('buildDraftRequest', () => {
     expect(body).toContain('Do NOT divide or multiply')
     // The import-only detect-and-divide rule must NOT leak into the draft prompt.
     expect(body).not.toContain('If you find one greater than 1, DIVIDE')
+  })
+  it('shares the exact-nutrition rule with the import prompt', () => {
+    const body = JSON.stringify(buildDraftRequest('gpt-4o', {
+      name: '', ingredients: [{ amount: '100 g', item: 'paneer' }],
+    }).messages)
+    expect(body).toContain('PREFER STATED VALUES')
+    expect(body).toContain('EXACTLY as written')
+    expect(body).toContain('COMPUTE PER INGREDIENT')
+    expect(body).toContain('SUM those contributions across all ingredients')
   })
 })

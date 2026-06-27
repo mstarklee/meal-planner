@@ -14,15 +14,20 @@ export type ExtractionInput =
 // Detect-and-scale rule shared by the import and draft prompts. The model only scales when
 // the content itself states a serving count; otherwise the recipe is treated as one serving.
 const SERVING_RULE = [
-  '- Servings: look for an explicit serving count in the content (e.g. "serves 4", "makes 6 servings", "4 portions").',
-  '  If you find one greater than 1, DIVIDE all nutrition values AND ingredient amounts by that count so everything is per ONE person.',
-  '  If no serving count is stated, treat the recipe as already a single serving and use the values as-is. Never guess a serving count.',
+  '- Servings: only scale if the text EXPLICITLY states a serving count in words (e.g. "serves 4", "makes 6 servings", "yield: 4", "4 portions").',
+  '  When such a phrase gives a number greater than 1, DIVIDE all nutrition values AND ingredient amounts by that number so everything is per ONE person.',
+  '  Ingredient quantities, pack sizes, or how much food the recipe makes are NOT a serving count — never infer the number of servings from them.',
+  '  If no explicit serving phrase is present, treat the recipe as ONE serving and use the values as-is. Never guess a serving count.',
 ].join('\n')
 
 const NUTRITION_RULE = [
   '- Nutrition: provide a `nutrients` object with PER-ONE-PERSON values for these keys: ' + NUTRIENT_KEYS.join(', ') + '.',
   '  Units: calories=kcal; protein/carbs/healthy_fats/fiber/omega_3=grams; vitamin_a/vitamin_d/folate=µg; vitamin_b12=µg; vitamin_c/choline/iron/calcium/potassium/zinc/magnesium=mg.',
-  '  Use stated values when present; otherwise estimate sensible numbers. Use null only when you truly cannot estimate. Set nutrition_estimated=true if any value was estimated.',
+  '  Accuracy is required — these numbers must match the food, not be a rough guess. Follow this precedence for EACH nutrient:',
+  '  1. PREFER STATED VALUES: if the content explicitly states a value (a nutrition label, a "per serving" block, or a number the user typed), use that number EXACTLY as written — do not recompute, round, or adjust it.',
+  '  2. OTHERWISE COMPUTE PER INGREDIENT: derive each ingredient\'s contribution from standard food-composition values for that food at its given quantity, then SUM those contributions across all ingredients. Reason ingredient-by-ingredient before emitting the total; never emit a single eyeballed guess for the whole dish.',
+  '  When every emitted value came from stated data, set nutrition_estimated=false. If any value was computed (step 2), set nutrition_estimated=true.',
+  '  Use null only when a value genuinely cannot be determined for an ingredient.',
 ].join('\n')
 
 const SYSTEM = [
