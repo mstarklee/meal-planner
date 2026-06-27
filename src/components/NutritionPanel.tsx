@@ -3,29 +3,37 @@ import { NUTRIENT_GROUPS, GROUP_LABELS, nutrientsByGroup, type NutrientMap } fro
 import { buildNutrientRows } from '../lib/nutrition'
 import Icon from './Icon'
 
+export interface TargetOption {
+  id: string
+  label: string
+  targets: Record<string, number>
+}
+
 interface Props {
   values: NutrientMap // per person
-  targetsAdult: Record<string, number>
-  targetsKid: Record<string, number>
+  options: TargetOption[]
   estimated?: boolean
 }
 
-export default function NutritionPanel({ values, targetsAdult, targetsKid, estimated }: Props) {
-  const [who, setWho] = useState<'adult' | 'kid'>('adult')
-  const targets = who === 'adult' ? targetsAdult : targetsKid
+export default function NutritionPanel({ values, options, estimated }: Props) {
+  const [selectedId, setSelectedId] = useState(options[0]?.id ?? '')
+  const selected = options.find((o) => o.id === selectedId) ?? options[0]
+  const targets = selected?.targets ?? {}
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="eyebrow">Nutrition · per person</h2>
-        <div className="flex gap-1">
-          {(['adult', 'kid'] as const).map((t) => (
-            <button key={t} type="button" onClick={() => setWho(t)}
-              className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${who === t ? 'bg-terracotta text-bone-surface' : 'bg-ink/5 text-ink-soft'}`}>
-              {t === 'adult' ? 'Adult' : 'Kid'}
-            </button>
-          ))}
-        </div>
+        {options.length > 0 && (
+          <div className="flex flex-wrap gap-1 justify-end">
+            {options.map((o) => (
+              <button key={o.id} type="button" onClick={() => setSelectedId(o.id)}
+                className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${selected?.id === o.id ? 'bg-terracotta text-bone-surface' : 'bg-ink/5 text-ink-soft'}`}>
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {NUTRIENT_GROUPS.map((group) => {

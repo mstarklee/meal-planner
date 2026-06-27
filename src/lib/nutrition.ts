@@ -29,7 +29,7 @@ export function buildNutrientRows(
 ): NutrientRow[] {
   return defs.map((def) => {
     const value = typeof values[def.key] === 'number' ? (values[def.key] as number) : 0
-    const target = targets[def.key] ?? def.adultRda
+    const target = targets[def.key] ?? 0
     const pct = target > 0 ? Math.min(1, value / target) : 0
     return { def, value, target, pct }
   })
