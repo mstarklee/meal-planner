@@ -5,8 +5,19 @@ import {
   PICK_SLOTS, PICK_SLOT_LABELS, poolSlotFor, weekStartDate, planDays, todayDate,
 } from '../lib/mealPlan'
 import type { PickSlot, PoolEntry } from '../lib/mealPlan'
+import type { Recipe } from '../lib/recipe'
+import { toNutrientMap } from '../lib/recipe'
 import { getFullPool, getPicksForDate, setPick, clearPick } from '../lib/mealPlans'
 import { springSoft } from './motion'
+
+// Compact macro line so each pick is identifiable at a glance.
+function macroLine(recipe: Recipe): string {
+  const m = toNutrientMap(recipe.nutrients)
+  const parts: string[] = []
+  if (typeof m.calories === 'number') parts.push(`${Math.round(m.calories)} cal`)
+  if (typeof m.protein === 'number') parts.push(`${Math.round(m.protein)}g protein`)
+  return parts.join(' · ')
+}
 
 interface Props {
   initialDate?: string
@@ -115,37 +126,38 @@ export default function PlanDays({ initialDate }: Props) {
               {slotPool.length === 0 ? (
                 <p className="text-[13px] italic text-ink-faint">No recipes in this week’s pool — add some in the Pool tab.</p>
               ) : (
-                <div className="-mx-5 flex gap-3 overflow-x-auto px-5 pb-1">
+                <div className="-mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1">
                   {slotPool.map((entry) => {
                     const selected = picks[slot] === entry.recipe_id
                     const accent = isKid ? 'olive' : 'terracotta'
                     const initial = entry.recipe.name.trim().charAt(0).toUpperCase() || '·'
+                    const macros = macroLine(entry.recipe)
                     return (
                       <motion.button key={entry.id} type="button" onClick={() => handleTap(slot, entry.recipe_id)}
-                        whileTap={{ scale: 0.96 }} transition={springSoft}
-                        className="group w-28 shrink-0 text-left" aria-pressed={selected}>
-                        <div className={`relative aspect-square overflow-hidden rounded-2xl bg-bone-deep shadow-soft transition-all duration-200 ${
+                        whileTap={{ scale: 0.97 }} transition={springSoft} aria-pressed={selected}
+                        className={`flex w-[208px] shrink-0 items-center gap-2.5 rounded-2xl border p-2 text-left transition-colors ${
                           selected
-                            ? `ring-2 ring-offset-2 ring-offset-bone ${accent === 'olive' ? 'ring-olive' : 'ring-terracotta'}`
-                            : 'ring-1 ring-ink/10'
+                            ? accent === 'olive' ? 'border-olive bg-olive-soft/50' : 'border-terracotta bg-terracotta-soft/50'
+                            : 'border-ink/10 bg-bone-surface/50 hover:bg-bone-surface'
                         }`}>
+                        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-bone-deep">
                           {entry.recipe.photo_url ? (
-                            <img src={entry.recipe.photo_url} alt=""
-                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-editorial group-hover:scale-[1.04]" />
+                            <img src={entry.recipe.photo_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                           ) : (
-                            <span className="monogram absolute inset-0 text-[3rem] leading-none">{initial}</span>
-                          )}
-                          {selected && (
-                            <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-bone-surface ${
-                              accent === 'olive' ? 'bg-olive' : 'bg-terracotta'
-                            }`}>
-                              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
-                            </span>
+                            <span className="monogram absolute inset-0 text-[1.5rem] leading-none">{initial}</span>
                           )}
                         </div>
-                        <p className="mt-1.5 truncate font-display text-[13px] leading-tight text-ink">
-                          {entry.recipe.name}
-                        </p>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-display text-[14px] leading-tight text-ink">{entry.recipe.name}</p>
+                          {macros && <p className="mt-0.5 truncate text-[11px] text-ink-soft nums">{macros}</p>}
+                        </div>
+                        {selected && (
+                          <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-bone-surface ${
+                            accent === 'olive' ? 'bg-olive' : 'bg-terracotta'
+                          }`}>
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7" /></svg>
+                          </span>
+                        )}
                       </motion.button>
                     )
                   })}
